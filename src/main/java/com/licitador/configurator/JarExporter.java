@@ -1,166 +1,110 @@
 package com.licitador.configurator;
 
-import com.licitador.model.LicitacionData;
-import java.io.*;
-import java.util.*;
-import java.util.jar.*;
-import javax.swing.JOptionPane;
+import java.io.BufferedInputStream; // Necesario para el método addFile
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.jar.Attributes; // ¡Clave para MANIFEST.MF!
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest; // ¡Clave para MANIFEST.MF!
+import java.util.zip.ZipEntry; // Necesario para la línea que mencionaste
+import javax.swing.JTextArea;
 
-/**
- * Clase encargada de generar el archivo JAR ejecutable final que se entrega al
- * licitador. Este JAR encapsula la aplicación cliente completa junto con los
- * datos de configuración de la licitación serializados
- * ({@code LicitacionData}).
- *
- * El proceso se realiza tomando como base un JAR precompilado (shaded/gordo) de
- * Maven y añadiéndole el archivo {@code config.dat} con los datos específicos.
- */
-/**
- * Constructor por defecto.
- */
+// Importamos la interfaz Logger y la implementación TextAreaLogger
+import com.licitador.service.Logger;
+import com.licitador.service.TextAreaLogger;
+
 public class JarExporter {
 
-    /**
-     * Define la clase principal que se ejecutará al iniciar el JAR final.
-     */
-    private static final String MAIN_CLASS = "ficheros.Ficheros";
-
-    /**
-     * Ruta relativa al JAR fuente (shaded JAR de Maven) que contiene todas las
-     * clases y dependencias de la aplicación cliente.
-     */
-    private static final String SHADED_JAR_PATH = "Ficheros2-1.0-SNAPSHOT.jar";
-
-    /**
-     * Genera el JAR ejecutable final, incrustando los datos de configuración de
-     * la licitación y copiando todas las clases del JAR fuente.
-     *
-     * @param datos Los datos de configuración (expediente, objeto, documentos,
-     * etc.) a serializar e incrustar en el JAR.
-     * @param outputJarPath La ruta completa, incluyendo el nombre de archivo,
-     * para el JAR de salida.
-     * @return {@code true} si la exportación fue exitosa; {@code false} si la
-     * operación fue cancelada (por ejemplo, por el usuario en el diálogo de
-     * guardar) o si la ruta es inválida.
-     * @throws IOException Si ocurre un error de entrada/salida durante la
-     * serialización, la creación del JAR, o la copia de archivos.
-     */
-    public boolean exportToJar(LicitacionData datos, String outputJarPath) throws IOException {
-
-        // 1. MANEJO DE CANCELACIÓN: Si la ruta es nula o vacía (ej. se canceló el JFileChooser), salimos.
-        if (outputJarPath == null || outputJarPath.trim().isEmpty()) {
-            return false;
-        }
-
-        boolean success = false;
-
-        // 2. CREAR MANIFIESTO DEL JAR FINAL
-        Manifest manifest = new Manifest();
-        Attributes attrs = manifest.getMainAttributes();
-        attrs.put(Attributes.Name.MANIFEST_VERSION, "1.0");
-        attrs.put(Attributes.Name.MAIN_CLASS, MAIN_CLASS);
-
-        try (JarOutputStream jarOut = new JarOutputStream(new FileOutputStream(outputJarPath), manifest)) {
-
-            // 3. AÑADIR CONFIGURACIÓN SERIALIZADA (config.dat)
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
-                oos.writeObject(datos);
-            }
-            // Agrega el archivo config.dat al JAR
-            addJarEntry(jarOut, "config.dat", new ByteArrayInputStream(baos.toByteArray()));
-
-            // 4. COPIAR TODO EL CONTENIDO DEL JAR GORDO
-            copyShadedJarContents(jarOut);
-
-            // Si llegamos hasta aquí, el proceso fue exitoso
-            success = true;
-
-        } catch (FileNotFoundException e) {
-            // Manejo del error si el JAR fuente (shaded JAR) no se encuentra
-            JOptionPane.showMessageDialog(null,
-                    "Error: No se encontró el JAR fuente de Maven. Ejecuta 'Clean and Build' en tu IDE.\n"
-                    + "Buscado en: " + new File(SHADED_JAR_PATH).getAbsolutePath(),
-                    "Error de Archivo",
-                    JOptionPane.ERROR_MESSAGE);
-            // Relanzamos la excepción para el manejo superior
-            throw e;
-        } catch (Exception e) {
-            // Manejo de cualquier otra excepción de E/S
-            throw new IOException("Error al generar el JAR: " + e.getMessage(), e);
-        }
-
-        // 5. MOSTRAR EL MENSAJE DE ÉXITO (SOLO si success es true)
-        if (success) {
-            JOptionPane.showMessageDialog(null,
-                    "¡Archivo .jar generado con éxito!\n"
-                    + "Ruta: " + outputJarPath,
-                    "Éxito",
-                    JOptionPane.INFORMATION_MESSAGE);
-        }
-
-        return success;
+    private final String outputFilePath;
+    private final Logger logger; 
+    
+    // CONSTRUCTOR CORREGIDO: Vuelve a aceptar String y JTextArea
+    public JarExporter(String outputFilePath, JTextArea logArea) {
+        this.outputFilePath = outputFilePath;
+        // Inicializa el logger con la implementación de TextAreaLogger
+        this.logger = new TextAreaLogger(logArea); 
     }
 
-    // ========================================================================
-    // LÓGICA DE COPIA (SOLO EXTRACCIÓN DEL JAR FUENTE)
-    // ========================================================================
-    /**
-     * Copia todos los contenidos (clases, recursos, etc.) del JAR fuente
-     * ({@code SHADED_JAR_PATH}) al JAR de salida, excluyendo el manifiesto y
-     * las entradas de directorio.
-     *
-     * @param jarOut El {@code JarOutputStream} abierto del JAR de salida.
-     * @throws IOException Si el archivo JAR fuente no se encuentra o hay un
-     * error de lectura.
-     */
-    private void copyShadedJarContents(JarOutputStream jarOut) throws IOException {
-        File shadedJarFile = new File(SHADED_JAR_PATH);
+    public void exportJar() {
+        try (JarOutputStream target = new JarOutputStream(new FileOutputStream(outputFilePath))) {
+            logger.log("Iniciando la exportación del JAR a: " + outputFilePath);
 
-        if (!shadedJarFile.exists()) {
-            throw new FileNotFoundException("El JAR Sombreado (" + SHADED_JAR_PATH + ") no fue encontrado. Asegúrate de compilar el proyecto correctamente.");
+            // --- ESCRIBIR EL MANIFIESTO ---
+            writeManifest(target);
+
+            // --- AÑADIR CLASES DEL LICITADOR (RUTAS CORREGIDAS) ---
+            
+            // com.licitador.app
+            addFile(new File("target/classes/com/licitador/app/Ficheros.class"), "com/licitador/app/Ficheros.class", target);
+            
+            // com.licitador.ui
+            addFile(new File("target/classes/com/licitador/ui/MainWindow.class"), "com/licitador/ui/MainWindow.class", target);
+            addFile(new File("target/classes/com/licitador/ui/CargarArchivoComunDialog.class"), "com/licitador/ui/CargarArchivoComunDialog.class", target);
+            addFile(new File("target/classes/com/licitador/ui/CargarOfertaDialog.class"), "com/licitador/ui/CargarOfertaDialog.class", target);
+            addFile(new File("target/classes/com/licitador/ui/ConfidencialidadDialog.class"), "com/licitador/ui/ConfidencialidadDialog.class", target);
+            addFile(new File("target/classes/com/licitador/ui/ConfiguracionInicialDialog.class"), "com/licitador/ui/ConfiguracionInicialDialog.class", target);
+            addFile(new File("target/classes/com/licitador/ui/DetalleOfertasDialog.class"), "com/licitador/ui/DetalleOfertasDialog.class", target);
+            addFile(new File("target/classes/com/licitador/ui/LicitadorLotesDialog.class"), "com/licitador/ui/LicitadorLotesDialog.class", target);
+            
+            // com.licitador.model
+            addFile(new File("target/classes/com/licitador/model/ArchivoRequerido.class"), "com/licitador/model/ArchivoRequerido.class", target);
+            addFile(new File("target/classes/com/licitador/model/LicitacionData.class"), "com/licitador/model/LicitacionData.class", target);
+            addFile(new File("target/classes/com/licitador/model/LicitadorData.class"), "com/licitador/model/LicitadorData.class", target);
+            addFile(new File("target/classes/com/licitador/model/LicitadorLotesData.class"), "com/licitador/model/LicitadorLotesData.class", target);
+            
+            // com.licitador.service
+            addFile(new File("target/classes/com/licitador/service/Configuracion.class"), "com/licitador/service/Configuracion.class", target);
+            addFile(new File("target/classes/com/licitador/service/ConfidencialidadData.class"), "com/licitador/service/ConfidencialidadData.class", target);
+            addFile(new File("target/classes/com/licitador/service/FileData.class"), "com/licitador/service/FileData.class", target);
+            addFile(new File("target/classes/com/licitador/service/FileManager.class"), "com/licitador/service/FileManager.class", target);
+            addFile(new File("target/classes/com/licitador/service/Logger.class"), "com/licitador/service/Logger.class", target);
+            addFile(new File("target/classes/com/licitador/service/TextAreaLogger.class"), "com/licitador/service/TextAreaLogger.class", target);
+
+            logger.log("Exportación del JAR finalizada con éxito.");
+        } catch (IOException e) {
+            logger.log("Error al exportar el JAR: " + e.getMessage());
+            e.printStackTrace();
         }
+    }
 
-        try (JarFile sourceJar = new JarFile(shadedJarFile)) {
-            Enumeration<JarEntry> entries = sourceJar.entries();
-
-            while (entries.hasMoreElements()) {
-                JarEntry entry = entries.nextElement();
-                String entryName = entry.getName();
-
-                // Excluimos el Manifiesto y directorios para evitar duplicados y conflictos
-                if (entryName.equalsIgnoreCase("META-INF/MANIFEST.MF") || entry.isDirectory()) {
-                    continue;
+    private void addFile(File source, String entryName, JarOutputStream target) throws IOException {
+        BufferedInputStream in = null;
+        try {
+            if (source.exists()) {
+                in = new BufferedInputStream(new FileInputStream(source));
+                target.putNextEntry(new JarEntry(entryName));
+                byte[] buffer = new byte[1024];
+                int count;
+                while ((count = in.read(buffer)) != -1) {
+                    target.write(buffer, 0, count);
                 }
-
-                // Copiamos el archivo al nuevo JAR
-                addJarEntry(jarOut, entryName, sourceJar.getInputStream(entry));
+                target.closeEntry();
+                logger.log("Añadido: " + entryName);
+            } else {
+                logger.log("Advertencia: Archivo no encontrado - " + source.getPath());
+            }
+        } finally {
+            if (in != null) {
+                in.close();
             }
         }
     }
 
-    // ========================================================================
-    // MÉTODOS AUXILIARES
-    // ========================================================================
-    /**
-     * Añade una entrada (archivo o recurso) al JAR de salida.
-     *
-     * @param jarOut El {@code JarOutputStream} al que se añadirá la entrada.
-     * @param entryName El nombre de la entrada dentro del JAR.
-     * @param is El {@code InputStream} de los datos a copiar.
-     * @throws IOException Si ocurre un error de lectura o escritura.
-     */
-    private void addJarEntry(JarOutputStream jarOut, String entryName, InputStream is) throws IOException {
-        jarOut.putNextEntry(new JarEntry(entryName));
+    private void writeManifest(JarOutputStream target) throws IOException {
+        Manifest manifest = new Manifest();
+        Attributes mainAttributes = manifest.getMainAttributes();
+        mainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
+        
+        // La clase principal para el JAR de la APLICACIÓN LICITADORA
+        mainAttributes.put(Attributes.Name.MAIN_CLASS, "com.licitador.app.Ficheros"); 
+        
+        // No es necesario Class-Path si el shade plugin ya incluye dependencias
 
-        // Copia de datos
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len = is.read(buffer)) > 0) {
-            jarOut.write(buffer, 0, len);
-        }
-
-        jarOut.closeEntry();
-        is.close(); // Cierra el InputStream de la entrada
+        target.putNextEntry(new ZipEntry("META-INF/MANIFEST.MF"));
+        manifest.write(target);
+        target.closeEntry();
     }
 }

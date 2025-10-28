@@ -383,7 +383,7 @@ public class ConfiguradorApp extends JFrame {
 
         // 2. GENERAR JAR
         try {
-            JarExporter exporter = new JarExporter();
+            JarExporter exporter = new JarExporter(outputFilePath, logArea);
             String nombreJar = "licitacion-" + datos.getExpediente() + ".jar";
 
             // Abre el JFileChooser para seleccionar la ruta de guardado
@@ -395,7 +395,7 @@ public class ConfiguradorApp extends JFrame {
             }
 
             // Exporta los datos al archivo JAR
-            exporter.exportToJar(datos, jarPath);
+            exporter.exportJar();
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
