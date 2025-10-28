@@ -1,0 +1,10 @@
+# Maven files
+/target/
+
+# NetBeans files
+/nbproject/private/
+/build/
+/dist/
+*.log
+*.orig
+nbproject/
