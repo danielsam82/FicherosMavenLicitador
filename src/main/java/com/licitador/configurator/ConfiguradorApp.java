@@ -2,6 +2,8 @@ package com.licitador.configurator;
 
 import com.licitador.model.LicitacionData;
 import com.licitador.model.ArchivoRequerido;
+import com.licitador.service.TextAreaLogger; // Corregido: Importación de servicio
+import com.licitador.service.Logger; // Corregido: Importación de interfaz Logger
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
@@ -22,7 +24,7 @@ import java.util.List;
  */
 public class ConfiguradorApp extends JFrame {
 
-    // Componentes UI
+    // Componentes UI (Asegúrate que estas variables de campo coincidan con tus inicializaciones)
     private JTextArea txtAreaObjeto;
     private JTextField txtExpediente;
     private JRadioButton rbSiLotes, rbNoLotes;
@@ -32,28 +34,44 @@ public class ConfiguradorApp extends JFrame {
     private JSpinner spnNumDocumentos;
     private JPanel pnlDocumentos;
 
+    // Campos añadidos para el sistema de Logging
+    private JTextArea logTxt;
+    private Logger logger; 
+
     /**
      * Constructor principal de la aplicación Configurador. Inicializa los
      * componentes y configura la interfaz de usuario.
      */
     public ConfiguradorApp() {
         initComponents();
+        
+        // Inicialización de Logging y UI (movido desde el método setupUI para asegurar el orden)
+        logTxt = new JTextArea(); 
+        logger = new TextAreaLogger(logTxt); 
+        
         setupUI();
     }
 
     /**
      * Inicializa todos los componentes de la interfaz de usuario (UI).
+     * Solo inicializa los campos principales. El resto se inicializa en setupUI.
      */
     private void initComponents() {
-        // Inicializa todos los componentes aquí
+        // Inicialización de los campos de texto y área de texto
         txtAreaObjeto = new JTextArea(3, 20);
         txtExpediente = new JTextField();
+        
+        // Inicialización de botones de radio
         rbSiLotes = new JRadioButton("Sí");
         rbNoLotes = new JRadioButton("No", true);
+        
+        // Inicialización de Spinners con sus modelos
         spnNumLotes = new JSpinner(new SpinnerNumberModel(1, 1, 200, 1));
         spnNumArchivosComunes = new JSpinner(new SpinnerNumberModel(0, 0, 20, 1));
-        pnlArchivosComunes = new JPanel();
         spnNumDocumentos = new JSpinner(new SpinnerNumberModel(0, 0, 20, 1));
+        
+        // Inicialización de paneles contenedores
+        pnlArchivosComunes = new JPanel();
         pnlDocumentos = new JPanel();
     }
 
@@ -79,16 +97,30 @@ public class ConfiguradorApp extends JFrame {
         JPanel archivosPanel = createArchivosPanel();
         mainPanel.add(archivosPanel, BorderLayout.CENTER);
 
-        // 3. Botón generar
+        // 3. Panel Inferior para el botón y el área de log
+        JPanel bottomPanel = new JPanel(new BorderLayout(0, 10));
+        
+        // Área de log
+        JScrollPane logScrollPane = new JScrollPane(logTxt);
+        logTxt.setEditable(false);
+        logTxt.setBorder(BorderFactory.createTitledBorder("Registro de Exportación"));
+        logTxt.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        logScrollPane.setPreferredSize(new Dimension(800, 150));
+        bottomPanel.add(logScrollPane, BorderLayout.NORTH);
+        
+        // Botón generar
         JButton btnGenerar = createGenerateButton();
-        mainPanel.add(btnGenerar, BorderLayout.SOUTH);
+        bottomPanel.add(btnGenerar, BorderLayout.SOUTH);
+        
+        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
         add(mainPanel);
+        pack();
     }
 
     /**
      * Crea y configura el panel que contiene los campos de datos básicos de la
-     * licitación: Expediente, Objeto y la configuración de Lotes.
+     * licitación: Expediente, Objeto, y la configuración de Lotes.
      *
      * @return Un {@code JPanel} configurado.
      */
@@ -102,7 +134,6 @@ public class ConfiguradorApp extends JFrame {
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // [Lógica de diseño de Expediente, Objeto, y Lotes...]
         // Expediente
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -111,19 +142,18 @@ public class ConfiguradorApp extends JFrame {
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
-        txtExpediente = new JTextField(30);
         panel.add(txtExpediente, gbc);
 
         // Objeto
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.gridwidth = 1;
+        gbc.weighty = 0;
         panel.add(new JLabel("Objeto:"), gbc);
 
         gbc.gridx = 1;
         gbc.gridwidth = 2;
         gbc.weighty = 0.3;
-        txtAreaObjeto = new JTextArea(3, 30);
         txtAreaObjeto.setLineWrap(true);
         txtAreaObjeto.setWrapStyleWord(true);
         panel.add(new JScrollPane(txtAreaObjeto), gbc);
@@ -141,15 +171,12 @@ public class ConfiguradorApp extends JFrame {
         lotesPanel.setBackground(Color.WHITE);
 
         ButtonGroup bgLotes = new ButtonGroup();
-        rbSiLotes = new JRadioButton("Sí");
-        rbNoLotes = new JRadioButton("No", true);
         bgLotes.add(rbSiLotes);
         bgLotes.add(rbNoLotes);
 
         lotesPanel.add(rbSiLotes);
         lotesPanel.add(rbNoLotes);
         lotesPanel.add(new JLabel("Número de lotes:"));
-        spnNumLotes = new JSpinner(new SpinnerNumberModel(1, 1, 200, 1));
         spnNumLotes.setEnabled(false); // Inicialmente deshabilitado
 
         // Listener para habilitar/deshabilitar spinner
@@ -181,7 +208,6 @@ public class ConfiguradorApp extends JFrame {
         comunesHeader.add(new JLabel("Nº Archivos Comunes:"));
         comunesHeader.add(spnNumArchivosComunes);
 
-        pnlArchivosComunes = new JPanel();
         pnlArchivosComunes.setLayout(new BoxLayout(pnlArchivosComunes, BoxLayout.Y_AXIS));
 
         archivosComunesPanel.add(comunesHeader, BorderLayout.NORTH);
@@ -195,20 +221,22 @@ public class ConfiguradorApp extends JFrame {
         documentosHeader.add(new JLabel("Nº Documentos:"));
         documentosHeader.add(spnNumDocumentos);
 
-        pnlDocumentos = new JPanel();
         pnlDocumentos.setLayout(new BoxLayout(pnlDocumentos, BoxLayout.Y_AXIS));
 
         documentosPanel.add(documentosHeader, BorderLayout.NORTH);
         documentosPanel.add(new JScrollPane(pnlDocumentos), BorderLayout.CENTER);
 
-        // Añadir ambos subpaneles
-        panel.add(archivosComunesPanel);
-        panel.add(documentosPanel);
-
         // Listeners para actualizar los paneles de configuración de archivos
         spnNumArchivosComunes.addChangeListener(e -> actualizarArchivosComunes());
         spnNumDocumentos.addChangeListener(e -> actualizarDocumentos());
+        
+        // CORRECCIÓN: Llamada inicial para cargar los paneles (ej: si el valor inicial es 0)
+        actualizarArchivosComunes(); 
+        actualizarDocumentos();
 
+        panel.add(archivosComunesPanel);
+        panel.add(documentosPanel);
+        
         return panel;
     }
 
@@ -327,8 +355,13 @@ public class ConfiguradorApp extends JFrame {
      * @param e El evento de acción (clic del botón).
      */
     private void generarJarLicitador(ActionEvent e) {
+        // Limpiar el log al iniciar
+        logTxt.setText("");
+        logger.logInfo("Iniciando generación del archivo JAR...");
+        
         if (txtExpediente.getText().trim().isEmpty()) {
             JOptionPane.showMessageDialog(this, "¡El expediente es obligatorio!", "Error", JOptionPane.ERROR_MESSAGE);
+            logger.logError("Generación cancelada: El expediente está vacío.");
             return;
         }
 
@@ -337,6 +370,7 @@ public class ConfiguradorApp extends JFrame {
         for (Component c : pnlArchivosComunes.getComponents()) {
             if (c instanceof JPanel) {
                 JPanel panel = (JPanel) c;
+                // Asumiendo que el orden es: 0=JLabel("Nombre:"), 1=JTextField, 2=JCheckBox(Obligatorio), 3=JCheckBox(Confidencial)
                 JTextField txtNombre = (JTextField) panel.getComponent(1);
                 JCheckBox chkObligatorio = (JCheckBox) panel.getComponent(2);
                 JCheckBox chkConfidencial = (JCheckBox) panel.getComponent(3);
@@ -347,6 +381,7 @@ public class ConfiguradorApp extends JFrame {
                             chkObligatorio.isSelected(),
                             chkConfidencial.isSelected()
                     ));
+                    logger.logInfo("Arch. Común registrado: " + txtNombre.getText().trim());
                 }
             }
         }
@@ -365,6 +400,7 @@ public class ConfiguradorApp extends JFrame {
                             chkObligatorio.isSelected(),
                             chkConfidencial.isSelected()
                     ));
+                     logger.logInfo("Doc. Oferta registrado: " + txtNombre.getText().trim());
                 }
             }
         }
@@ -380,24 +416,40 @@ public class ConfiguradorApp extends JFrame {
                 archivosComunesList.toArray(new ArchivoRequerido[0]),
                 documentosOfertaList.toArray(new ArchivoRequerido[0])
         );
+        
+        logger.logInfo("Datos de licitación recolectados correctamente.");
+        logger.logInfo("Expediente: " + datos.getExpediente());
+        logger.logInfo("Lotes: " + (datos.isTieneLotes() ? datos.getNumLotes() : "No"));
 
         // 2. GENERAR JAR
         try {
-            JarExporter exporter = new JarExporter(outputFilePath, logArea);
             String nombreJar = "licitacion-" + datos.getExpediente() + ".jar";
 
-            // Abre el JFileChooser para seleccionar la ruta de guardado
+            // Obtener la ruta de salida
             String jarPath = getJarOutputPath(nombreJar);
 
             // Si el usuario cancela, jarPath es null y salimos.
             if (jarPath == null) {
+                logger.logInfo("Generación cancelada por el usuario.");
                 return;
             }
+            
+            logger.logInfo("Ruta de destino seleccionada: " + jarPath);
+            
+            // Inicialización del JarExporter CORREGIDA
+            // Usando la ruta completa y el JTextArea para el logging
+            JarExporter exporter = new JarExporter(datos, jarPath, logTxt); 
 
-            // Exporta los datos al archivo JAR
+            // Llamada al método CORREGIDA
             exporter.exportJar();
 
+            // Mensaje de éxito
+            JOptionPane.showMessageDialog(this, "El archivo JAR de licitación se ha creado con éxito en: " + jarPath, "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            logger.logInfo("¡Archivo JAR generado con éxito!");
+
         } catch (Exception ex) {
+            // Usar logger para registrar el error
+            logger.logError("Error crítico al generar el .jar: " + ex.getMessage());
             JOptionPane.showMessageDialog(this,
                     "Error al generar el .jar:\n" + ex.getMessage(),
                     "Error",

@@ -1,10 +1,10 @@
 package com.licitador.service;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Implementación de la interfaz {@link Logger} que dirige la salida de los mensajes
@@ -12,10 +12,13 @@ import java.io.Serializable;
  *
  * Esta clase es segura para hilos, ya que utiliza {@link SwingUtilities#invokeLater(Runnable)}
  * para asegurar que todas las modificaciones al JTextArea se realicen en el Event Dispatch Thread (EDT).
- * Los mensajes se formatean con un prefijo indicando el nivel (INFO o ERROR).
+ * Los mensajes se formatean con un prefijo indicando el nivel (INFO, LOG o ERROR) y una marca de tiempo.
  */
 public class TextAreaLogger implements Logger {
+    
     private final JTextArea textArea;
+    // Uso de java.time.format para manejo moderno de fechas
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     /**
      * Constructor para {@code TextAreaLogger}.
@@ -29,41 +32,57 @@ public class TextAreaLogger implements Logger {
         }
         this.textArea = textArea;
     }
+    
+    /**
+     * Método auxiliar para formatear y añadir mensajes al JTextArea, asegurando
+     * que se ejecuta en el Event Dispatch Thread (EDT).
+     * * @param prefix El prefijo del nivel (ej: [INFO], [ERROR]).
+     * @param message El cuerpo del mensaje.
+     */
+    private void appendFormattedMessage(String prefix, String message) {
+         if (textArea != null) {
+             String timestamp = LocalDateTime.now().format(formatter);
+             SwingUtilities.invokeLater(() -> {
+                 // Formato: [HH:mm:ss] [PREFIJO] Mensaje
+                 textArea.append("[" + timestamp + "] " + prefix + message + "\n");
+                 // Desplazar al final para ver los últimos mensajes
+                 textArea.setCaretPosition(textArea.getDocument().getLength());
+             });
+         }
+    }
+
 
     /**
-     * Registra un mensaje de nivel INFO en el {@link JTextArea}.
+     * Registra un mensaje de nivel LOG (general) en el {@link JTextArea}.
      *
-     * El mensaje se prefija con "[INFO] " y se añade una nueva línea.
-     * La operación se ejecuta de forma asíncrona en el Event Dispatch Thread (EDT).
-     *
-     * @param message El mensaje de información a registrar.
+     * @param message El mensaje general a registrar.
      */
     @Override
     public void log(String message) {
-        // La verificación de null ya se hace en el constructor, pero se mantiene para robustez.
-        if (textArea != null) {
-            SwingUtilities.invokeLater(() -> {
-                // Se utiliza append para añadir el mensaje al final del área de texto
-                textArea.append("[INFO] " + message + "\n");
-            });
-        }
+        appendFormattedMessage("LOG: ", message);
     }
 
     /**
      * Registra un mensaje de nivel ERROR en el {@link JTextArea}.
      *
-     * El mensaje se prefija con "[ERROR] " y se añade una nueva línea.
-     * La operación se ejecuta de forma asíncrona en el Event Dispatch Thread (EDT).
-     *
      * @param message El mensaje de error a registrar.
      */
     @Override
     public void logError(String message) {
-        if (textArea != null) {
-            SwingUtilities.invokeLater(() -> {
-                // Se utiliza append para añadir el mensaje de error al final del área de texto
-                textArea.append("[ERROR] " + message + "\n");
-            });
-        }
+        // Tu versión original usaba "[ERROR] ", pero lo adapto al formato con timestamp.
+        appendFormattedMessage("ERROR: ", message);
+    }
+    
+    /**
+     * Registra un mensaje de nivel INFO en el {@link JTextArea}.
+     *
+     * Este método es crucial para corregir el error de compilación en ConfiguradorApp.
+     *
+     * @param message El mensaje de información a registrar.
+     */
+    @Override
+    public void logInfo(String message) {
+        // Implementación del método que faltaba
+        appendFormattedMessage("INFO: ", message);
     }
 }

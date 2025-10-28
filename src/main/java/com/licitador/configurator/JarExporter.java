@@ -1,18 +1,18 @@
 package com.licitador.configurator;
 
-import java.io.BufferedInputStream; // Necesario para el método addFile
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.jar.Attributes; // ¡Clave para MANIFEST.MF!
+import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
-import java.util.jar.Manifest; // ¡Clave para MANIFEST.MF!
-import java.util.zip.ZipEntry; // Necesario para la línea que mencionaste
+import java.util.jar.Manifest;
+import java.util.zip.ZipEntry; // Importación necesaria para ZipEntry
 import javax.swing.JTextArea;
 
-// Importamos la interfaz Logger y la implementación TextAreaLogger
+// Importaciones para el Logger
 import com.licitador.service.Logger;
 import com.licitador.service.TextAreaLogger;
 
@@ -21,13 +21,14 @@ public class JarExporter {
     private final String outputFilePath;
     private final Logger logger; 
     
-    // CONSTRUCTOR CORREGIDO: Vuelve a aceptar String y JTextArea
+    // CONSTRUCTOR: Define que acepta String y JTextArea
     public JarExporter(String outputFilePath, JTextArea logArea) {
         this.outputFilePath = outputFilePath;
         // Inicializa el logger con la implementación de TextAreaLogger
         this.logger = new TextAreaLogger(logArea); 
     }
 
+    // Método que ejecuta la exportación
     public void exportJar() {
         try (JarOutputStream target = new JarOutputStream(new FileOutputStream(outputFilePath))) {
             logger.log("Iniciando la exportación del JAR a: " + outputFilePath);
@@ -98,11 +99,9 @@ public class JarExporter {
         Attributes mainAttributes = manifest.getMainAttributes();
         mainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
         
-        // La clase principal para el JAR de la APLICACIÓN LICITADORA
+        // Clase principal para el JAR de la APLICACIÓN LICITADORA
         mainAttributes.put(Attributes.Name.MAIN_CLASS, "com.licitador.app.Ficheros"); 
         
-        // No es necesario Class-Path si el shade plugin ya incluye dependencias
-
         target.putNextEntry(new ZipEntry("META-INF/MANIFEST.MF"));
         manifest.write(target);
         target.closeEntry();
