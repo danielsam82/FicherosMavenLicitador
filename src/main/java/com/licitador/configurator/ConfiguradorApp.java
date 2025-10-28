@@ -2,25 +2,22 @@ package com.licitador.configurator;
 
 import com.licitador.model.LicitacionData;
 import com.licitador.model.ArchivoRequerido;
-import com.licitador.service.TextAreaLogger; 
-import com.licitador.service.Logger; 
+import com.licitador.model.AnexoAdministrativo;
+import com.licitador.service.TextAreaLogger;
+import com.licitador.service.Logger;
+import com.licitador.service.AnexoAdministrativoService;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 
 /**
  * Clase principal de la aplicación Configurador, que proporciona una interfaz
  * gráfica (GUI) para definir los parámetros de una nueva licitación
- * (expediente, objeto, lotes, y documentos requeridos).
- *
- * El propósito de esta aplicación es generar un archivo JAR que contiene los
- * datos de la licitación serializados ({@code LicitacionData}) que luego será
- * utilizado por la aplicación principal del licitador.
+ * (expediente, objeto, lotes, documentos requeridos y anexos administrativos).
  */
 public class ConfiguradorApp extends JFrame {
 
@@ -34,9 +31,16 @@ public class ConfiguradorApp extends JFrame {
     private JSpinner spnNumDocumentos;
     private JPanel pnlDocumentos;
 
+    // --- NUEVOS CAMPOS PARA ANEXOS ---
+    private JList<AnexoAdministrativo> listaAnexosDisponibles;
+    private DefaultListModel<AnexoAdministrativo> listModelAnexos;
+    private List<AnexoAdministrativo> anexosSeleccionados = new ArrayList<>();
+    private final AnexoAdministrativoService anexoService = new AnexoAdministrativoService();
+    // ----------------------------------
+
     // Campos añadidos para el sistema de Logging
     private JTextArea logTxt;
-    private Logger logger; 
+    private Logger logger;
 
     /**
      * Constructor principal de la aplicación Configurador. Inicializa los
@@ -44,35 +48,51 @@ public class ConfiguradorApp extends JFrame {
      */
     public ConfiguradorApp() {
         initComponents();
-        
+
         // Inicialización de Logging y UI (movido desde el método setupUI para asegurar el orden)
-        logTxt = new JTextArea(); 
-        logger = new TextAreaLogger(logTxt); 
-        
+        logTxt = new JTextArea();
+        logger = new TextAreaLogger(logTxt);
+
         setupUI();
+        cargarAnexosDisponibles(); // Carga la lista inicial de anexos
     }
+
+    // --- NUEVO MÉTODO DE CARGA ---
+    /**
+     * Carga la lista maestra de anexos en el ListModel.
+     */
+    private void cargarAnexosDisponibles() {
+        listModelAnexos.clear();
+        anexoService.cargarAnexos().forEach(listModelAnexos::addElement);
+        logger.logInfo("Base de datos de anexos cargada (" + anexoService.cargarAnexos().size() + " anexos)");
+    }
+    // -----------------------------
 
     /**
      * Inicializa todos los componentes de la interfaz de usuario (UI).
-     * Solo inicializa los campos principales. El resto se inicializa en setupUI.
      */
     private void initComponents() {
         // Inicialización de los campos de texto y área de texto
         txtAreaObjeto = new JTextArea(3, 20);
         txtExpediente = new JTextField();
-        
+
         // Inicialización de botones de radio
         rbSiLotes = new JRadioButton("Sí");
         rbNoLotes = new JRadioButton("No", true);
-        
+
         // Inicialización de Spinners con sus modelos
         spnNumLotes = new JSpinner(new SpinnerNumberModel(1, 1, 200, 1));
         spnNumArchivosComunes = new JSpinner(new SpinnerNumberModel(0, 0, 20, 1));
         spnNumDocumentos = new JSpinner(new SpinnerNumberModel(0, 0, 20, 1));
-        
+
         // Inicialización de paneles contenedores
         pnlArchivosComunes = new JPanel();
         pnlDocumentos = new JPanel();
+
+        // --- NUEVOS COMPONENTES DE ANEXOS ---
+        listModelAnexos = new DefaultListModel<>();
+        listaAnexosDisponibles = new JList<>(listModelAnexos);
+        // ------------------------------------
     }
 
     /**
@@ -89,17 +109,21 @@ public class ConfiguradorApp extends JFrame {
         mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
         mainPanel.setBackground(new Color(240, 240, 240));
 
-        // 1. Panel de datos básicos (Expediente, Objeto, Lotes)
-        JPanel datosBasicosPanel = createDatosBasicosPanel();
-        mainPanel.add(datosBasicosPanel, BorderLayout.NORTH);
+        // 1. Panel Norte (Datos Básicos y Gestión de Anexos)
+        JPanel northPanel = new JPanel(new BorderLayout(10, 10));
+        northPanel.add(createDatosBasicosPanel(), BorderLayout.CENTER);
+        northPanel.add(createAnexosAdminButton(), BorderLayout.EAST); // Botón de gestión de anexos
+        mainPanel.add(northPanel, BorderLayout.NORTH);
 
-        // 2. Panel de archivos (Archivos Comunes y Documentos de Oferta)
-        JPanel archivosPanel = createArchivosPanel();
-        mainPanel.add(archivosPanel, BorderLayout.CENTER);
+        // 2. Panel Central (Archivos y Anexos Requeridos)
+        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        centerPanel.add(createArchivosPanel()); // Archivos Comunes y Oferta
+        centerPanel.add(createAnexosPanel()); // Panel de selección de anexos
+        mainPanel.add(centerPanel, BorderLayout.CENTER);
 
         // 3. Panel Inferior para el botón y el área de log
         JPanel bottomPanel = new JPanel(new BorderLayout(0, 10));
-        
+
         // Área de log
         JScrollPane logScrollPane = new JScrollPane(logTxt);
         logTxt.setEditable(false);
@@ -107,23 +131,42 @@ public class ConfiguradorApp extends JFrame {
         logTxt.setFont(new Font("Monospaced", Font.PLAIN, 12));
         logScrollPane.setPreferredSize(new Dimension(800, 150));
         bottomPanel.add(logScrollPane, BorderLayout.NORTH);
-        
+
         // Botón generar
         JButton btnGenerar = createGenerateButton();
         bottomPanel.add(btnGenerar, BorderLayout.SOUTH);
-        
+
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
         add(mainPanel);
         pack();
     }
 
-    /**
-     * Crea y configura el panel que contiene los campos de datos básicos de la
-     * licitación: Expediente, Objeto, y la configuración de Lotes.
-     *
-     * @return Un {@code JPanel} configurado.
-     */
+    // --- NUEVO MÉTODO: Botón para el Gestor de Anexos ---
+    private JPanel createAnexosAdminButton() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JButton btnGestionarAnexos = new JButton("<html><center>Gestionar<br>Plantillas de Anexos</center></html>");
+        btnGestionarAnexos.setFont(new Font("Arial", Font.BOLD, 12));
+        btnGestionarAnexos.setPreferredSize(new Dimension(150, 60));
+        btnGestionarAnexos.addActionListener(e -> abrirGestorAnexos());
+
+        panel.add(btnGestionarAnexos, BorderLayout.NORTH);
+        return panel;
+    }
+
+    private void abrirGestorAnexos() {
+        // Abre el diálogo de gestión de anexos (que carga y guarda la lista maestra)
+        AnexoManagerDialog dialog = new AnexoManagerDialog(this);
+        dialog.setVisible(true);
+
+        // Recargar la lista de anexos después de que el diálogo se cierre
+        cargarAnexosDisponibles();
+    }
+    // ----------------------------------------------------
+
+    // Método createDatosBasicosPanel sin cambios...
     private JPanel createDatosBasicosPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBorder(createTitledBorder("Datos Básicos de la Licitación", new Color(0, 102, 204)));
@@ -139,7 +182,6 @@ public class ConfiguradorApp extends JFrame {
         gbc.gridy = 0;
         gbc.gridwidth = 1;
         panel.add(new JLabel("Expediente:"), gbc);
-
         gbc.gridx = 1;
         gbc.weightx = 1.0;
         panel.add(txtExpediente, gbc);
@@ -150,7 +192,6 @@ public class ConfiguradorApp extends JFrame {
         gbc.gridwidth = 1;
         gbc.weighty = 0;
         panel.add(new JLabel("Objeto:"), gbc);
-
         gbc.gridx = 1;
         gbc.gridwidth = 2;
         gbc.weighty = 0.3;
@@ -191,9 +232,8 @@ public class ConfiguradorApp extends JFrame {
 
     /**
      * Crea y configura el panel que contiene los controles para definir los
-     * Archivos Comunes y los Documentos de Oferta requeridos.
-     *
-     * @return Un {@code JPanel} configurado.
+     * Archivos Comunes y los Documentos de Oferta requeridos. Es el panel de la
+     * izquierda del CENTRO.
      */
     private JPanel createArchivosPanel() {
         JPanel panel = new JPanel(new GridLayout(1, 2, 15, 0)); // 2 columnas iguales
@@ -229,21 +269,51 @@ public class ConfiguradorApp extends JFrame {
         // Listeners para actualizar los paneles de configuración de archivos
         spnNumArchivosComunes.addChangeListener(e -> actualizarArchivosComunes());
         spnNumDocumentos.addChangeListener(e -> actualizarDocumentos());
-        
-        // CORRECCIÓN LÓGICA: Llamada inicial para cargar los paneles 
-        actualizarArchivosComunes(); 
+
+        actualizarArchivosComunes();
         actualizarDocumentos();
 
         panel.add(archivosComunesPanel);
         panel.add(documentosPanel);
-        
+
         return panel;
     }
 
+    // --- NUEVO MÉTODO: Panel de Selección de Anexos Requeridos ---
+    private JPanel createAnexosPanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.setBorder(createTitledBorder("Anexos Administrativos Requeridos", new Color(255, 102, 0)));
+        panel.setBackground(Color.WHITE);
+
+        // Configuración de la lista de anexos disponibles (con selección múltiple)
+        listaAnexosDisponibles.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        listaAnexosDisponibles.setCellRenderer(new AnexoManagerDialog.AnexoListCellRenderer());
+
+        JScrollPane scrollPane = new JScrollPane(listaAnexosDisponibles);
+
+        // Listener para capturar los elementos seleccionados
+        listaAnexosDisponibles.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                anexosSeleccionados.clear();
+                for (AnexoAdministrativo anexo : listaAnexosDisponibles.getSelectedValuesList()) {
+                    anexosSeleccionados.add(anexo);
+                }
+                logger.logInfo("Anexos seleccionados para esta licitación: " + anexosSeleccionados.size());
+            }
+        });
+
+        panel.add(new JLabel("Seleccione los anexos administrativos requeridos (Control/Cmd + Clic para selección múltiple):"), BorderLayout.NORTH);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+    // -------------------------------------------------------------
+
+    // Los métodos createFilePanel, createTitledBorder, actualizarArchivosComunes, 
+    // y actualizarDocumentos permanecen sin cambios.
+    // ... [Aquí van los métodos que siguen sin cambios: createGenerateButton, createTitledBorder, actualizarArchivosComunes, actualizarDocumentos, createFilePanel] ...
     /**
      * Crea y configura el botón principal de generación del archivo JAR.
-     *
-     * @return El botón de generar configurado.
      */
     private JButton createGenerateButton() {
         JButton btnGenerar = new JButton("GENERAR ARCHIVO PARA LICITADORES");
@@ -275,10 +345,6 @@ public class ConfiguradorApp extends JFrame {
 
     /**
      * Crea un borde con título y color de fuente personalizado.
-     *
-     * @param title El texto del título.
-     * @param color El color de la línea del borde y del texto.
-     * @return Un {@code TitledBorder} configurado.
      */
     private TitledBorder createTitledBorder(String title, Color color) {
         return BorderFactory.createTitledBorder(
@@ -292,9 +358,8 @@ public class ConfiguradorApp extends JFrame {
     }
 
     /**
-     * Actualiza dinámicamente el panel de configuración de los archivos comunes
-     * basándose en el valor del {@code spnNumArchivosComunes}. Por cada número,
-     * añade un panel de entrada de datos de archivo.
+     * Actualiza dinámicamente el panel de configuración de los archivos
+     * comunes.
      */
     private void actualizarArchivosComunes() {
         pnlArchivosComunes.removeAll();
@@ -308,8 +373,7 @@ public class ConfiguradorApp extends JFrame {
 
     /**
      * Actualiza dinámicamente el panel de configuración de los documentos de
-     * oferta basándose en el valor del {@code spnNumDocumentos}. Por cada
-     * número, añade un panel de entrada de datos de documento.
+     * oferta.
      */
     private void actualizarDocumentos() {
         pnlDocumentos.removeAll();
@@ -323,12 +387,7 @@ public class ConfiguradorApp extends JFrame {
 
     /**
      * Crea un {@code JPanel} que contiene los campos para definir un archivo
-     * requerido: Nombre del documento, y {@code JCheckBox} para Obligatorio y
-     * Confidencial.
-     *
-     * @param title El título del borde para el panel de la fila (ej: "Archivo
-     * 1").
-     * @return Un {@code JPanel} de configuración de archivo.
+     * requerido.
      */
     private JPanel createFilePanel(String title) {
         JPanel rowPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -351,21 +410,19 @@ public class ConfiguradorApp extends JFrame {
      * Controlador del evento al hacer clic en el botón "GENERAR". Recolecta los
      * datos de la interfaz, crea un objeto {@code LicitacionData} y llama al
      * {@code JarExporter} para empaquetarlo en un archivo JAR.
-     *
-     * @param e El evento de acción (clic del botón).
      */
     private void generarJarLicitador(ActionEvent e) {
         // Limpiar el log al iniciar
         logTxt.setText("");
         logger.logInfo("Iniciando generación del archivo JAR...");
-        
+
         if (txtExpediente.getText().trim().isEmpty()) {
             JOptionPane.showMessageDialog(this, "¡El expediente es obligatorio!", "Error", JOptionPane.ERROR_MESSAGE);
             logger.logError("Generación cancelada: El expediente está vacío.");
             return;
         }
 
-        // 1. RECOLECCIÓN DE DATOS
+        // 1. RECOLECCIÓN DE DATOS (Incluyendo Anexos)
         List<ArchivoRequerido> archivosComunesList = new ArrayList<>();
         for (Component c : pnlArchivosComunes.getComponents()) {
             if (c instanceof JPanel) {
@@ -400,7 +457,7 @@ public class ConfiguradorApp extends JFrame {
                             chkObligatorio.isSelected(),
                             chkConfidencial.isSelected()
                     ));
-                     logger.logInfo("Doc. Oferta registrado: " + txtNombre.getText().trim());
+                    logger.logInfo("Doc. Oferta registrado: " + txtNombre.getText().trim());
                 }
             }
         }
@@ -408,47 +465,42 @@ public class ConfiguradorApp extends JFrame {
         // Crear objeto de datos LicitacionData
         int numLotes = rbSiLotes.isSelected() ? (Integer) spnNumLotes.getValue() : 0;
 
+        // CRÍTICO: El constructor de LicitacionData DEBE aceptar la lista de anexos
         LicitacionData datos = new LicitacionData(
                 txtExpediente.getText().trim(),
                 txtAreaObjeto.getText().trim(),
                 rbSiLotes.isSelected(),
                 numLotes,
                 archivosComunesList.toArray(new ArchivoRequerido[0]),
-                documentosOfertaList.toArray(new ArchivoRequerido[0])
+                documentosOfertaList.toArray(new ArchivoRequerido[0]),
+                anexosSeleccionados.toArray(new AnexoAdministrativo[0]) // Se añade la lista de anexos
         );
-        
+
         logger.logInfo("Datos de licitación recolectados correctamente.");
         logger.logInfo("Expediente: " + datos.getExpediente());
-        // CRÍTICO: Corrección de isTieneLotes() a tieneLotes()
         logger.logInfo("Lotes: " + (datos.tieneLotes() ? datos.getNumLotes() : "No"));
+        logger.logInfo("Anexos administrativos seleccionados: " + anexosSeleccionados.size());
 
         // 2. GENERAR JAR
         try {
             String nombreJar = "licitacion-" + datos.getExpediente() + ".jar";
 
-            // Obtener la ruta de salida
             String jarPath = getJarOutputPath(nombreJar);
 
-            // Si el usuario cancela, jarPath es null y salimos.
             if (jarPath == null) {
                 logger.logInfo("Generación cancelada por el usuario.");
                 return;
             }
-            
-            logger.logInfo("Ruta de destino seleccionada: " + jarPath);
-            
-            // CRÍTICO: Constructor de JarExporter con 3 argumentos (datos, ruta, logTxt)
-            JarExporter exporter = new JarExporter(datos, jarPath, logTxt); 
 
-            // Llamada al método 
+            logger.logInfo("Ruta de destino seleccionada: " + jarPath);
+
+            JarExporter exporter = new JarExporter(datos, jarPath, logTxt);
             exporter.exportJar();
 
-            // Mensaje de éxito
             JOptionPane.showMessageDialog(this, "El archivo JAR de licitación se ha creado con éxito en: " + jarPath, "Éxito", JOptionPane.INFORMATION_MESSAGE);
             logger.logInfo("¡Archivo JAR generado con éxito!");
 
         } catch (Exception ex) {
-            // Usar logger para registrar el error
             logger.logError("Error crítico al generar el .jar: " + ex.getMessage());
             JOptionPane.showMessageDialog(this,
                     "Error al generar el .jar:\n" + ex.getMessage(),
@@ -461,10 +513,6 @@ public class ConfiguradorApp extends JFrame {
     /**
      * Muestra un diálogo {@code JFileChooser} para que el usuario seleccione la
      * ubicación y el nombre final del archivo JAR a guardar.
-     *
-     * @param nombreJar El nombre de archivo propuesto por defecto.
-     * @return La ruta absoluta donde guardar el archivo, o {@code null} si el
-     * usuario cancela.
      */
     private String getJarOutputPath(String nombreJar) {
         JFileChooser fileChooser = new JFileChooser();
@@ -472,24 +520,18 @@ public class ConfiguradorApp extends JFrame {
         fileChooser.setSelectedFile(new File(nombreJar));
 
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            // Se seleccionó una ruta
             return fileChooser.getSelectedFile().getAbsolutePath();
         } else {
-            // El usuario canceló el diálogo
             return null;
         }
     }
 
     /**
      * Método principal (main) para iniciar la aplicación Configurador.
-     * Establece el Look and Feel del sistema operativo y lanza la GUI.
-     *
-     * @param args Argumentos de la línea de comandos (no utilizados).
      */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
-                // Configura el Look and Feel nativo del sistema operativo
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception ignored) {
             }
