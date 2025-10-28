@@ -1,7 +1,7 @@
-package configurador;
+package com.licitador.configurator;
 
-import interfaz.models.LicitacionData;
-import interfaz.models.ArchivoRequerido;
+import com.licitador.model.LicitacionData;
+import com.licitador.model.ArchivoRequerido;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;

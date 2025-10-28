@@ -1,6 +1,6 @@
-package ficheros;
+package com.licitador.service;
 
-import interfaz.models.LicitadorData;
+import com.licitador.model.LicitadorData;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.*;

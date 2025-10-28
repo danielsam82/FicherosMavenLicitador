@@ -1,4 +1,4 @@
-package ficheros;
+package com.licitador.service;
 
 import java.io.Serializable;
 import java.util.Objects;

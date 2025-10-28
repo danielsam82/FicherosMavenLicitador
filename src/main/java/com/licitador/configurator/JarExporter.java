@@ -1,6 +1,6 @@
-package configurador;
+package com.licitador.configurator;
 
-import interfaz.models.*;
+import com.licitador.model.LicitacionData;
 import java.io.*;
 import java.util.*;
 import java.util.jar.*;

@@ -1,4 +1,4 @@
-package interfaz.models;
+package com.licitador.model;
 
 import java.io.Serializable;
 import java.util.Arrays;

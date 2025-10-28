@@ -1,4 +1,4 @@
-package ficheros;
+package com.licitador.service;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;

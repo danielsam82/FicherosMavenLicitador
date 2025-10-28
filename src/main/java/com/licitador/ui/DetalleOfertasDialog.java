@@ -1,5 +1,8 @@
-package ficheros;
+package com.licitador.ui;
 
+import com.licitador.service.Configuracion;
+import com.licitador.service.FileData;
+import com.licitador.service.FileManager;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;

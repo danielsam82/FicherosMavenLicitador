@@ -1,5 +1,6 @@
-package ficheros;
+package com.licitador.app;
 
+import com.licitador.ui.MainWindow;
 import javax.swing.*;
 import java.io.Serializable;
 

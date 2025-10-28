@@ -1,7 +1,8 @@
-package ficheros;
+package com.licitador.ui;
 
-import interfaz.models.LicitadorData;
-import interfaz.models.LicitadorLotesData;
+import com.licitador.model.LicitadorData;
+import com.licitador.model.LicitadorLotesData;
+import com.licitador.service.Configuracion;
 
 import javax.swing.*;
 import java.awt.*;

@@ -1,5 +1,6 @@
-package ficheros;
+package com.licitador.ui;
 
+import com.licitador.service.FileManager;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;

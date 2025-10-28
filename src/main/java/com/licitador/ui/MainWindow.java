@@ -1,8 +1,13 @@
-package ficheros;
+package com.licitador.ui;
 
-import interfaz.models.ArchivoRequerido;
-import interfaz.models.LicitacionData;
-import interfaz.models.LicitadorData;
+import com.licitador.model.ArchivoRequerido;
+import com.licitador.model.LicitacionData;
+import com.licitador.model.LicitadorData;
+import com.licitador.service.Configuracion;
+import com.licitador.service.FileData;
+import com.licitador.service.FileManager;
+import com.licitador.service.Logger;
+import com.licitador.service.TextAreaLogger;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;

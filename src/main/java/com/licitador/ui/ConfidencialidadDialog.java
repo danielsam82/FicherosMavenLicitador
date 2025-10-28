@@ -1,4 +1,4 @@
-package ficheros;
+package com.licitador.ui;
 
 import javax.swing.*;
 import java.util.ArrayList;
