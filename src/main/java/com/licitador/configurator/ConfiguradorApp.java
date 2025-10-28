@@ -2,8 +2,8 @@ package com.licitador.configurator;
 
 import com.licitador.model.LicitacionData;
 import com.licitador.model.ArchivoRequerido;
-import com.licitador.service.TextAreaLogger; // Corregido: Importación de servicio
-import com.licitador.service.Logger; // Corregido: Importación de interfaz Logger
+import com.licitador.service.TextAreaLogger; 
+import com.licitador.service.Logger; 
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
@@ -230,7 +230,7 @@ public class ConfiguradorApp extends JFrame {
         spnNumArchivosComunes.addChangeListener(e -> actualizarArchivosComunes());
         spnNumDocumentos.addChangeListener(e -> actualizarDocumentos());
         
-        // CORRECCIÓN: Llamada inicial para cargar los paneles (ej: si el valor inicial es 0)
+        // CORRECCIÓN LÓGICA: Llamada inicial para cargar los paneles 
         actualizarArchivosComunes(); 
         actualizarDocumentos();
 
@@ -419,7 +419,8 @@ public class ConfiguradorApp extends JFrame {
         
         logger.logInfo("Datos de licitación recolectados correctamente.");
         logger.logInfo("Expediente: " + datos.getExpediente());
-        logger.logInfo("Lotes: " + (datos.isTieneLotes() ? datos.getNumLotes() : "No"));
+        // CRÍTICO: Corrección de isTieneLotes() a tieneLotes()
+        logger.logInfo("Lotes: " + (datos.tieneLotes() ? datos.getNumLotes() : "No"));
 
         // 2. GENERAR JAR
         try {
@@ -436,11 +437,10 @@ public class ConfiguradorApp extends JFrame {
             
             logger.logInfo("Ruta de destino seleccionada: " + jarPath);
             
-            // Inicialización del JarExporter CORREGIDA
-            // Usando la ruta completa y el JTextArea para el logging
+            // CRÍTICO: Constructor de JarExporter con 3 argumentos (datos, ruta, logTxt)
             JarExporter exporter = new JarExporter(datos, jarPath, logTxt); 
 
-            // Llamada al método CORREGIDA
+            // Llamada al método 
             exporter.exportJar();
 
             // Mensaje de éxito

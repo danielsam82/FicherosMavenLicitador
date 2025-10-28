@@ -15,17 +15,19 @@ import javax.swing.JTextArea;
 // Importaciones para el Logger
 import com.licitador.service.Logger;
 import com.licitador.service.TextAreaLogger;
+import com.licitador.model.LicitacionData;
 
 public class JarExporter {
 
+    private final LicitacionData licitacionData;
     private final String outputFilePath;
-    private final Logger logger; 
-    
+    private final Logger logger;
+
     // CONSTRUCTOR: Define que acepta String y JTextArea
-    public JarExporter(String outputFilePath, JTextArea logArea) {
+    public JarExporter(LicitacionData licitacionData, String outputFilePath, JTextArea logArea) {
+        this.licitacionData = licitacionData;
         this.outputFilePath = outputFilePath;
-        // Inicializa el logger con la implementación de TextAreaLogger
-        this.logger = new TextAreaLogger(logArea); 
+        this.logger = new TextAreaLogger(logArea);
     }
 
     // Método que ejecuta la exportación
@@ -37,10 +39,9 @@ public class JarExporter {
             writeManifest(target);
 
             // --- AÑADIR CLASES DEL LICITADOR (RUTAS CORREGIDAS) ---
-            
             // com.licitador.app
             addFile(new File("target/classes/com/licitador/app/Ficheros.class"), "com/licitador/app/Ficheros.class", target);
-            
+
             // com.licitador.ui
             addFile(new File("target/classes/com/licitador/ui/MainWindow.class"), "com/licitador/ui/MainWindow.class", target);
             addFile(new File("target/classes/com/licitador/ui/CargarArchivoComunDialog.class"), "com/licitador/ui/CargarArchivoComunDialog.class", target);
@@ -49,13 +50,13 @@ public class JarExporter {
             addFile(new File("target/classes/com/licitador/ui/ConfiguracionInicialDialog.class"), "com/licitador/ui/ConfiguracionInicialDialog.class", target);
             addFile(new File("target/classes/com/licitador/ui/DetalleOfertasDialog.class"), "com/licitador/ui/DetalleOfertasDialog.class", target);
             addFile(new File("target/classes/com/licitador/ui/LicitadorLotesDialog.class"), "com/licitador/ui/LicitadorLotesDialog.class", target);
-            
+
             // com.licitador.model
             addFile(new File("target/classes/com/licitador/model/ArchivoRequerido.class"), "com/licitador/model/ArchivoRequerido.class", target);
             addFile(new File("target/classes/com/licitador/model/LicitacionData.class"), "com/licitador/model/LicitacionData.class", target);
             addFile(new File("target/classes/com/licitador/model/LicitadorData.class"), "com/licitador/model/LicitadorData.class", target);
             addFile(new File("target/classes/com/licitador/model/LicitadorLotesData.class"), "com/licitador/model/LicitadorLotesData.class", target);
-            
+
             // com.licitador.service
             addFile(new File("target/classes/com/licitador/service/Configuracion.class"), "com/licitador/service/Configuracion.class", target);
             addFile(new File("target/classes/com/licitador/service/ConfidencialidadData.class"), "com/licitador/service/ConfidencialidadData.class", target);
@@ -98,10 +99,10 @@ public class JarExporter {
         Manifest manifest = new Manifest();
         Attributes mainAttributes = manifest.getMainAttributes();
         mainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
-        
+
         // Clase principal para el JAR de la APLICACIÓN LICITADORA
-        mainAttributes.put(Attributes.Name.MAIN_CLASS, "com.licitador.app.Ficheros"); 
-        
+        mainAttributes.put(Attributes.Name.MAIN_CLASS, "com.licitador.app.Ficheros");
+
         target.putNextEntry(new ZipEntry("META-INF/MANIFEST.MF"));
         manifest.write(target);
         target.closeEntry();
