@@ -1,6 +1,11 @@
 package com.licitador.service;
 
 import com.licitador.model.LicitadorData;
+import com.licitador.service.FileData;
+import com.licitador.service.Logger;
+import com.licitador.service.Configuracion;
+import com.licitador.service.PDFGenerator;
+import com.lowagie.text.DocumentException; 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.*;
@@ -11,7 +16,11 @@ import java.text.SimpleDateFormat;
 import java.util.stream.Collectors;
 
 public class FileManager implements Serializable {
-    private static final long serialVersionUID = 1L;
+
+    // --- NUEVOS CAMPOS PARA EL ANEXO ADMINISTRATIVO ---
+    private FileData anexoAdministrativoData;
+    private static final String ANEXO_ADMINISTRATIVO_NOMBRE_CLAVE = "Anexo Administrativo";
+    // --------------------------------------------------
 
     // Declaración de variables de instancia
     private transient Logger logger;
@@ -19,8 +28,8 @@ public class FileManager implements Serializable {
     private final Map<String, FileData> archivosComunes;
     private final Map<String, FileData> archivosOferta;
     // Mapa: Lote ID (Integer) -> Participación (Boolean)
-    private final Map<Integer, Boolean> participacionPorLote; 
-    private LicitadorData licitadorData;
+    private final Map<Integer, Boolean> participacionPorLote;
+    private LicitadorData licitadorData; // Se asume inicializado por el constructor
 
     public FileManager(Configuracion configuracion, Logger logger) {
         if (logger == null) {
@@ -30,7 +39,7 @@ public class FileManager implements Serializable {
         this.configuracion = Objects.requireNonNull(configuracion, "Configuración no puede ser null");
         this.archivosComunes = new HashMap<>();
         this.archivosOferta = new LinkedHashMap<>();
-        this.participacionPorLote = new HashMap<>(); 
+        this.participacionPorLote = new HashMap<>();
         this.licitadorData = new LicitadorData();
     }
 
@@ -55,10 +64,119 @@ public class FileManager implements Serializable {
             logger.logError(message);
         }
     }
+    
+    public void logInfo(String message) {
+         if (logger != null) {
+            logger.log(message);
+        }
+    }
+    
+    // --- LÓGICA DE GESTIÓN DEL ANEXO ADMINISTRATIVO ---
+    
+    /**
+     * Valida si los datos del Licitador y la selección de lotes son suficientes
+     * para generar el Anexo Administrativo.
+     * @return true si los datos están listos.
+     */
+    public boolean validarDatosAdministrativosParaAnexo() {
+        // 1. Validar participación mínima (si aplica)
+        if (!validarMinimoParticipacion()) {
+            // El error ya fue logueado en validarMinimoParticipacion()
+            return false;
+        }
+        
+        // 2. Validar campos obligatorios del licitador (Se asume que LicitadorData tiene un método para esto)
+        // NOTA: Necesitas implementar 'estanDatosObligatoriosCompletos()' en tu clase LicitadorData.
+        // if (!licitadorData.estanDatosObligatoriosCompletos()) { 
+        //     logError("Validación Administrativa fallida: Faltan datos obligatorios del licitador (NIF/Razón Social).");
+        //     return false;
+        // }
+        
+        // Implementación temporal asumiendo NIF y Razón Social son mínimos
+        if (licitadorData.getNif() == null || licitadorData.getNif().trim().isEmpty() ||
+            licitadorData.getRazonSocial() == null || licitadorData.getRazonSocial().trim().isEmpty()) {
+             logError("Validación Administrativa fallida: Faltan datos obligatorios del licitador (NIF/Razón Social).");
+             return false;
+        }
 
-    // Archivo: FileManager.java (Método corregido)
+        return true;
+    }
 
-    public boolean guardarSesion() { // <<-- ¡CAMBIO CLAVE: Ahora devuelve boolean!
+    /**
+     * Genera el Anexo Administrativo en formato PDF con los datos del licitador, 
+     * la configuración y lo guarda en su campo dedicado. (MODIFICADO)
+     *
+     * @return true si el anexo se generó y cargó correctamente.
+     */
+    public boolean generarAnexoAdministrativoYGuardar() {
+        
+        // 1. Validar primero los datos administrativos
+        if (!validarDatosAdministrativosParaAnexo()) {
+            JOptionPane.showMessageDialog(null, "No se puede generar el Anexo. Faltan datos obligatorios del licitador o no ha seleccionado lotes.", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        try {
+            // Se asume que PDFGenerator.generarAnexoAdministrativo existe y funciona
+            byte[] pdfContent = PDFGenerator.generarAnexoAdministrativo(
+                    this.licitadorData,
+                    this.participacionPorLote,
+                    this.configuracion
+            );
+
+            String nombreFinalArchivo = ANEXO_ADMINISTRATIVO_NOMBRE_CLAVE + ".pdf";
+
+            FileData anexoData = new FileData(
+                    nombreFinalArchivo,
+                    pdfContent,
+                    false, // No es confidencial
+                    null,
+                    null
+            );
+
+            // CLAVE: Lo guardamos en su campo dedicado
+            this.anexoAdministrativoData = anexoData; 
+
+            logger.log("Anexo Administrativo (" + nombreFinalArchivo + ") generado y listo para compresión.");
+            return true;
+
+        } catch (DocumentException e) {
+            logError("Error al generar el PDF del Anexo Administrativo (DocumentException): " + e.getMessage());
+        } catch (IOException e) {
+            logError("Error de I/O al generar el PDF del Anexo Administrativo: " + e.getMessage());
+        } catch (Exception e) {
+             logError("Error inesperado al generar el Anexo Administrativo: " + e.getMessage());
+        }
+        return false;
+    }
+    
+    /**
+     * Valida si el licitador ha cumplimentado todos los requisitos obligatorios
+     * para proceder a la compresión final. (CORREGIDO Y UNIFICADO)
+     *
+     * @return true si la oferta está lista para ser comprimida.
+     */
+    public boolean validarOfertaCompleta() {
+
+        // 1. Validar Anexo Administrativo (debe haber sido generado previamente)
+        if (this.anexoAdministrativoData == null || this.anexoAdministrativoData.getContenido() == null || this.anexoAdministrativoData.getContenido().length == 0) {
+            logError("Validación de Compresión fallida: Faltan el Anexo Administrativo. Por favor, generelo primero.");
+            return false;
+        }
+
+        // 2. Validar Archivos y Ofertas Obligatorias (ya incluye la validación de lotes)
+        if (!estanArchivosObligatoriosCompletos()) {
+            // El error ya fue logueado en estanArchivosObligatoriosCompletos()
+            return false;
+        }
+        
+        logInfo("Validación final exitosa: Todos los requisitos obligatorios están cubiertos.");
+        return true;
+    }
+
+    // --- MÉTODOS DE ARCHIVOS Y COMPRESIÓN ---
+
+    public boolean guardarSesion() { 
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Guardar progreso de la sesión");
         fileChooser.setFileFilter(new FileNameExtensionFilter("Archivo de Sesión (*.dat)", "dat"));
@@ -72,47 +190,44 @@ public class FileManager implements Serializable {
                 fileToSave = new File(filePath + ".dat");
             }
 
-            try (FileOutputStream fos = new FileOutputStream(fileToSave);
-                 ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+            try (FileOutputStream fos = new FileOutputStream(fileToSave); ObjectOutputStream oos = new ObjectOutputStream(fos)) {
 
-                // [MODIFICADO]: Incluir el mapa de participación en el constructor de DatosSesionCargada
                 DatosSesionCargada datosSesion = new DatosSesionCargada(
-                    archivosComunes, 
-                    archivosOferta, 
-                    this.licitadorData,
-                    // CLAVE: Serializar el mapa de participación
-                    this.participacionPorLote 
+                        archivosComunes,
+                        archivosOferta,
+                        this.licitadorData,
+                        this.participacionPorLote
                 );
                 oos.writeObject(datosSesion);
 
                 log("Sesión guardada en: " + fileToSave.getPath());
                 JOptionPane.showMessageDialog(null, "El progreso se ha guardado correctamente.", "Guardar Sesión", JOptionPane.INFORMATION_MESSAGE);
-                return true; // <<-- DEVOLVER TRUE en caso de éxito
+                return true;
 
             } catch (IOException e) {
                 logError("Error al guardar la sesión: " + e.getMessage());
                 JOptionPane.showMessageDialog(null, "Error al guardar el progreso.", "Guardar Sesión", JOptionPane.ERROR_MESSAGE);
-                return false; // <<-- DEVOLVER FALSE en caso de error
+                return false;
             }
         } else {
             log("Operación de guardado de sesión cancelada.");
-            return false; // <<-- DEVOLVER FALSE en caso de cancelación por el usuario
+            return false;
         }
     }
 
-    // Clase interna MODIFICADA para agrupar los datos de sesión para serialización
     private static class DatosSesionCargada implements Serializable {
-        private static final long serialVersionUID = 2L; // <<--- [IMPORTANTE]: Se ha subido la versión
+
+        private static final long serialVersionUID = 2L; 
         final Map<String, FileData> archivosComunes;
         final Map<String, FileData> ofertasPorLote;
         final LicitadorData licitadorData;
-        final Map<Integer, Boolean> participacionPorLote; // <<--- [NUEVO] Campo para serializar
+        final Map<Integer, Boolean> participacionPorLote; 
 
         DatosSesionCargada(Map<String, FileData> archivosComunes, Map<String, FileData> ofertasPorLote, LicitadorData licitadorData, Map<Integer, Boolean> participacionPorLote) {
             this.archivosComunes = archivosComunes;
             this.ofertasPorLote = ofertasPorLote;
             this.licitadorData = licitadorData;
-            this.participacionPorLote = participacionPorLote; // <<--- Asignación
+            this.participacionPorLote = participacionPorLote;
         }
     }
 
@@ -131,8 +246,7 @@ public class FileManager implements Serializable {
                 return false;
             }
 
-            try (FileInputStream fis = new FileInputStream(fileToLoad);
-                 ObjectInputStream ois = new ObjectInputStream(fis)) {
+            try (FileInputStream fis = new FileInputStream(fileToLoad); ObjectInputStream ois = new ObjectInputStream(fis)) {
 
                 Object objDatosSesion = ois.readObject();
                 if (objDatosSesion instanceof DatosSesionCargada) {
@@ -145,21 +259,20 @@ public class FileManager implements Serializable {
                     this.archivosOferta.putAll(datosSesion.ofertasPorLote);
 
                     this.licitadorData = datosSesion.licitadorData;
-                    
-                    // [MODIFICADO]: Cargar la nueva estructura de participación
+
                     this.participacionPorLote.clear();
                     if (datosSesion.participacionPorLote != null) {
                         this.participacionPorLote.putAll(datosSesion.participacionPorLote);
                     } else {
-                        // Manejo de compatibilidad con versiones antiguas (se asume false por defecto)
                         log("Advertencia: Sesión cargada de versión antigua sin datos de participación por lote.");
                     }
+                    
+                    this.anexoAdministrativoData = null; // Siempre se regenera tras la carga
 
                     log("Sesión cargada desde: " + fileToLoad.getPath());
                     JOptionPane.showMessageDialog(null, "Progreso cargado con éxito.", "Cargar Sesión", JOptionPane.INFORMATION_MESSAGE);
                     return true;
                 } else {
-                    // Manejo de versiones antiguas sin el campo 'participacionPorLote' (si es que existe)
                     throw new IOException("Formato de archivo de sesión inválido o incompatible. Asegúrese de que el archivo sea de la versión 2 o superior.");
                 }
 
@@ -177,52 +290,45 @@ public class FileManager implements Serializable {
     public void resetData() {
         archivosComunes.clear();
         archivosOferta.clear();
-        participacionPorLote.clear(); // <<--- Limpiar el nuevo mapa
+        participacionPorLote.clear();
         this.licitadorData = new LicitadorData();
+        this.anexoAdministrativoData = null; 
         log("Todos los datos de la sesión han sido eliminados.");
     }
-
+    
+    // --- MÉTODOS DE CARGA DE ARCHIVOS ---
+    
     public boolean cargarArchivoComun(String nombreConfigurado, File archivoSeleccionado, boolean esConfidencial, String[] supuestosSeleccionados, String[] motivosSupuestos) {
-        // Verificar si el archivo ya está cargado y pedir confirmación para sobrescribir
         if (archivosComunes.containsKey(nombreConfigurado)) {
-            int respuesta = JOptionPane.showConfirmDialog(null, "Ya existe un archivo cargado para '" + nombreConfigurado + "'. ¿Desea sobrescribirlo?", "Advertencia", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-            if (respuesta != JOptionPane.YES_OPTION) {
-                log("Operación de carga de '" + nombreConfigurado + "' cancelada por el usuario.");
-                return false;
-            }
+             int respuesta = JOptionPane.showConfirmDialog(null, "Ya existe un archivo cargado para '" + nombreConfigurado + "'. ¿Desea sobrescribirlo?", "Advertencia", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+             if (respuesta != JOptionPane.YES_OPTION) {
+                 log("Operación de carga de '" + nombreConfigurado + "' cancelada por el usuario.");
+                 return false;
+             }
         }
 
         try {
-            byte[] fileContent = Files.readAllBytes(archivoSeleccionado.toPath());
+             byte[] fileContent = Files.readAllBytes(archivoSeleccionado.toPath());
+             FileData nuevoArchivo = new FileData(archivoSeleccionado.getName(), fileContent, esConfidencial, supuestosSeleccionados, motivosSupuestos);
+             archivosComunes.put(nombreConfigurado, nuevoArchivo);
 
-            // Creamos una nueva instancia de FileData con los datos de confidencialidad
-            FileData nuevoArchivo = new FileData(archivoSeleccionado.getName(), fileContent, esConfidencial, supuestosSeleccionados, motivosSupuestos);
+             String logMessage = "Archivo común '" + nombreConfigurado + "' cargado desde: " + archivoSeleccionado.getAbsolutePath();
+             if (esConfidencial) {
+                 logMessage += " (CONFIDENCIAL)";
+             }
+             log(logMessage);
 
-            // Almacenamos el nuevo objeto FileData en el mapa
-            archivosComunes.put(nombreConfigurado, nuevoArchivo);
-
-            // Registro del evento
-            String logMessage = "Archivo común '" + nombreConfigurado + "' cargado desde: " + archivoSeleccionado.getAbsolutePath();
-            if (esConfidencial) {
-                logMessage += " (CONFIDENCIAL)";
-            }
-            log(logMessage);
-
-            return true;
+             return true;
         } catch (IOException ex) {
-            logError("Error al cargar el archivo '" + nombreConfigurado + "': " + ex.getMessage());
-            JOptionPane.showMessageDialog(null, "Error al leer el archivo seleccionado.", "Error", JOptionPane.ERROR_MESSAGE);
-            return false;
+             logError("Error al cargar el archivo '" + nombreConfigurado + "': " + ex.getMessage());
+             JOptionPane.showMessageDialog(null, "Error al leer el archivo seleccionado.", "Error", JOptionPane.ERROR_MESSAGE);
+             return false;
         }
     }
 
-    // CLAVE: La firma cambia de 'int numLote' a 'String loteKeyPrefix'
     public boolean cargarArchivoOferta(String nombreOferta, File archivoSeleccionado, String loteKeyPrefix, boolean esConfidencial, String[] supuestosSeleccionados, String[] motivosSupuestos) {
-
-        // CLAVE: La clave se construye usando el prefijo (ej: "Lote1_") o cadena vacía ("")
         String clave = loteKeyPrefix + nombreOferta;
 
-        // Check if the file is already loaded and prompt for overwrite
         if (archivosOferta.containsKey(clave)) {
             int respuesta = JOptionPane.showConfirmDialog(null, "Ya existe un archivo cargado para '" + nombreOferta + "'. ¿Desea sobrescribirlo?", "Advertencia", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
             if (respuesta != JOptionPane.YES_OPTION) {
@@ -233,15 +339,11 @@ public class FileManager implements Serializable {
 
         try {
             byte[] fileContent = Files.readAllBytes(archivoSeleccionado.toPath());
-
-            // Create FileData, passing the confidentiality details if available
             FileData nuevoArchivo = new FileData(archivoSeleccionado.getName(), fileContent, esConfidencial, supuestosSeleccionados, motivosSupuestos);
             archivosOferta.put(clave, nuevoArchivo);
 
-            // Ajuste en el LOG para mostrar el lote si el prefijo no está vacío
             String logMessage = "Archivo de oferta '" + nombreOferta + "' cargado desde: " + archivoSeleccionado.getAbsolutePath();
             if (!loteKeyPrefix.isEmpty()) {
-                // Extraemos el número de lote para el log (ej: "Lote1_" -> "1")
                 String numLoteStr = loteKeyPrefix.replace("Lote", "").replace("_", "");
                 logMessage += " para el Lote " + numLoteStr;
             }
@@ -255,46 +357,39 @@ public class FileManager implements Serializable {
         }
     }
 
-    /**
-     * [MODIFICADO]: Comprueba archivos obligatorios SOLO para los lotes marcados como PARTICIPACIÓN.
-     */
     public boolean estanArchivosObligatoriosCompletos() {
-        // Check common files (SIN CAMBIOS)
+        // Check common files
         boolean[] obligatoriosComunes = configuracion.getArchivosComunesObligatorios();
         String[] nombresComunes = configuracion.getNombresArchivosComunes();
         for (int i = 0; i < nombresComunes.length; i++) {
             if (obligatoriosComunes[i] && !archivosComunes.containsKey(nombresComunes[i])) {
-                log("Falta archivo común obligatorio: " + nombresComunes[i]);
+                logError("Falta archivo común obligatorio: " + nombresComunes[i]);
                 return false;
             }
         }
 
         // Check offer files (per lot or single offer)
         if (configuracion.isTieneLotes()) {
-            // For each lot, check if all required offer files are present
             for (int loteNum = 1; loteNum <= configuracion.getNumLotes(); loteNum++) {
-                
-                // --- [CLAVE] Comprobamos si el licitador ha marcado la participación ---
-                boolean participa = getParticipacionLote(loteNum); 
-                
-                if (participa) { // <<--- ¡SOLO VALIDAMOS SI PARTICIPA!
+                boolean participa = getParticipacionLote(loteNum);
+
+                if (participa) { 
                     for (Configuracion.ArchivoOferta ofertaConfig : configuracion.getArchivosOferta()) {
                         if (ofertaConfig.esObligatorio()) {
                             String claveEsperada = "Lote" + loteNum + "_" + ofertaConfig.getNombre();
                             if (!archivosOferta.containsKey(claveEsperada)) {
-                                log("Falta oferta obligatoria '" + ofertaConfig.getNombre() + "' para el Lote " + loteNum + " (Lote marcado como Participa).");
+                                logError("Falta oferta obligatoria '" + ofertaConfig.getNombre() + "' para el Lote " + loteNum + " (Lote marcado como Participa).");
                                 return false;
                             }
                         }
                     }
                 }
-                // Si 'participa' es false, saltamos la validación obligatoria para este lote.
             }
         } else {
-            // For a single offer, check if all required offer files are present (SIN CAMBIOS)
+            // For a single offer, check if all required offer files are present
             for (Configuracion.ArchivoOferta ofertaConfig : configuracion.getArchivosOferta()) {
                 if (ofertaConfig.esObligatorio() && !archivosOferta.containsKey(ofertaConfig.getNombre())) {
-                    log("Falta oferta obligatoria: " + ofertaConfig.getNombre());
+                    logError("Falta oferta obligatoria: " + ofertaConfig.getNombre());
                     return false;
                 }
             }
@@ -302,27 +397,16 @@ public class FileManager implements Serializable {
         return true;
     }
 
-    /**
-     * Comprime todos los archivos cargados en un archivo ZIP.
-     * @param carpetaDestino La carpeta donde se guardará el archivo ZIP (seleccionada por el usuario).
-     * @param zipFileName Nombre base del archivo ZIP (ej: "Oferta").
-     * @param logContent Contenido del log de la sesión.
-     * @param progressBar Barra de progreso para la actualización de la interfaz de usuario.
-     * @param onFinish Acción a ejecutar al finalizar.
-     */
+
     public void comprimirArchivosConProgreso(File carpetaDestino, String zipFileName, String logContent, JProgressBar progressBar, Runnable onFinish) {
-        if (!estanArchivosObligatoriosCompletos()) {
-            JOptionPane.showMessageDialog(null, "No se pueden comprimir los archivos. Faltan documentos obligatorios.", "Advertencia", JOptionPane.WARNING_MESSAGE);
-            logError("Operación de compresión cancelada: Faltan archivos obligatorios.");
-            if (onFinish != null) onFinish.run();
-            return;
-        }
         
-        // 🚀 AÑADIDA VALIDACIÓN DE PARTICIPACIÓN MÍNIMA
-        if (!validarMinimoParticipacion()) {
-            JOptionPane.showMessageDialog(null, "No se pueden comprimir los archivos. En una licitación con lotes, debe seleccionar al menos un lote para participar.", "Advertencia", JOptionPane.WARNING_MESSAGE);
-            logError("Operación de compresión cancelada: Ningún lote marcado para participar.");
-            if (onFinish != null) onFinish.run();
+        // 1. USAMOS LA VALIDACIÓN UNIFICADA DE TODO EL PROCESO
+        if (!validarOfertaCompleta()) { 
+            JOptionPane.showMessageDialog(null, "No se pueden comprimir los archivos. Faltan documentos obligatorios o el Anexo Administrativo.", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            logError("Operación de compresión cancelada: Falló la validación completa.");
+            if (onFinish != null) {
+                onFinish.run();
+            }
             return;
         }
 
@@ -331,7 +415,9 @@ public class FileManager implements Serializable {
 
         if (confirmacion != JOptionPane.YES_OPTION) {
             log("Compresión cancelada por el usuario.");
-            if (onFinish != null) onFinish.run();
+            if (onFinish != null) {
+                onFinish.run();
+            }
             return;
         }
 
@@ -342,45 +428,45 @@ public class FileManager implements Serializable {
             protected Void doInBackground() throws Exception {
                 String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
-                // --- AJUSTE CLAVE: FORZAMOS EL USO DEL NIF PARA EL NOMBRE DEL ZIP ---
-                String identificadorParaZip = licitadorData.getNif(); // Obtenemos el NIF
+                String identificadorParaZip = licitadorData.getNif();
 
-                // 1. Si el NIF está vacío (improbable por la validación), usamos la Razón Social como fallback.
                 if (identificadorParaZip == null || identificadorParaZip.isEmpty()) {
                     identificadorParaZip = licitadorData.getRazonSocial();
                 }
 
-                // 2. Fallback final si todo está vacío
                 if (identificadorParaZip == null || identificadorParaZip.isEmpty()) {
-                    identificadorParaZip = "LicitadorDesconocido"; // Valor por defecto
+                    identificadorParaZip = "LicitadorDesconocido";
                 }
-                
-                // 3. Sanitizar (limpiar) el identificador elegido (NIF o Razón Social) de caracteres no válidos.
-                String sanitizedIdentifier = identificadorParaZip.replaceAll("[^a-zA-Z0-9_.-]", "_");
-                // ---------------------------------------------------------------------
 
-                // 4. Construir el nombre completo del archivo ZIP. 
+                String sanitizedIdentifier = identificadorParaZip.replaceAll("[^a-zA-Z0-9_.-]", "_");
                 String baseFileName = zipFileName + "_" + sanitizedIdentifier + "_" + timeStamp + ".zip";
-                
-                // 5. CLAVE: Crear el objeto File de destino completo (carpetaDestino + baseFileName)
                 File outputFile = new File(carpetaDestino, baseFileName);
                 String finalFilePath = outputFile.getAbsolutePath();
 
-
-                try (FileOutputStream fos = new FileOutputStream(outputFile);
-                     ZipOutputStream zipOut = new ZipOutputStream(fos)) {
+                try (FileOutputStream fos = new FileOutputStream(outputFile); ZipOutputStream zipOut = new ZipOutputStream(fos)) {
 
                     log("Iniciando compresión de archivos...");
-                    // Solo contamos archivos que se van a añadir (ignorando los que no participan en lotes)
-                    int totalFiles = archivosComunes.size() + archivosOferta.size();
+                    // Se añade +1 por el Log, +1 por el Anexo Administrativo, y los archivos comunes/oferta.
+                    int totalFiles = archivosComunes.size() + archivosOferta.size() + 2; 
                     int compressedCount = 0;
                     Set<String> addedEntries = new HashSet<>();
                     Set<String> addedDirs = new HashSet<>();
 
-                    // Añadir el log
+                    // AÑADIR EL LOG
                     String logFileName = "log_" + configuracion.getNumeroExpediente() + "_" + timeStamp + ".txt";
                     byte[] logBytes = generarContenidoLog(licitadorData, logContent).getBytes();
                     addFileToZip(zipOut, logFileName, logBytes, addedEntries);
+                    compressedCount++;
+
+                    // AÑADIR EL ANEXO ADMINISTRATIVO
+                    if (anexoAdministrativoData != null) {
+                        String anexoNombre = ANEXO_ADMINISTRATIVO_NOMBRE_CLAVE + ".pdf";
+                        addFileToZip(zipOut, anexoNombre, anexoAdministrativoData.getContenido(), addedEntries); 
+                        log(" - Anexo Administrativo añadido en la raíz del ZIP.");
+                        compressedCount++;
+                        publish((int) ((double) compressedCount / totalFiles * 100));
+                    }
+
 
                     // Añadir archivos comunes
                     String comunesDirName = "Archivos Comunes/";
@@ -394,18 +480,18 @@ public class FileManager implements Serializable {
                         String extension = fileData.getExtension();
                         String zipEntryPath = comunesDirName + nombreConfigurado + (extension.isEmpty() ? "" : "." + extension);
                         addFileToZip(zipOut, zipEntryPath, fileData.getContenido(), addedEntries);
-                        log("  - Archivo común '" + nombreConfigurado + "' añadido");
+                        log(" - Archivo común '" + nombreConfigurado + "' añadido");
                         compressedCount++;
                         publish((int) ((double) compressedCount / totalFiles * 100));
 
-                        // LÓGICA PARA CONFIDENCIALIDAD DE ARCHIVOS COMUNES
+                        // LÓGICA PARA CONFIDENCIALIDAD
                         if (fileData.esConfidencial()) {
                             String justificacionFileName = nombreConfigurado + "_Confidencial.txt";
                             String zipEntryPathConf = comunesDirName + justificacionFileName;
                             String contenidoConfidencial = generarContenidoConfidencialDetallado(fileData);
                             byte[] contenidoConfidencialBytes = contenidoConfidencial.getBytes();
                             addFileToZip(zipOut, zipEntryPathConf, contenidoConfidencialBytes, addedEntries);
-                            log("  - Archivo de confidencialidad para '" + nombreConfigurado + "' añadido");
+                            log(" - Archivo de confidencialidad para '" + nombreConfigurado + "' añadido");
                         }
                     }
 
@@ -415,7 +501,7 @@ public class FileManager implements Serializable {
                         zipOut.putNextEntry(new ZipEntry(ofertaDirName));
                         zipOut.closeEntry();
                     }
-                    
+
                     for (Map.Entry<String, FileData> entry : archivosOferta.entrySet()) {
                         String claveOriginal = entry.getKey();
                         FileData fileData = entry.getValue();
@@ -427,21 +513,18 @@ public class FileManager implements Serializable {
                         if (configuracion.isTieneLotes()) {
                             int underscoreIndex = claveOriginal.indexOf('_');
                             if (underscoreIndex != -1) {
-                                String loteStr = claveOriginal.substring(0, underscoreIndex); // LoteX
-                                
-                                // CLAVE: Comprobar si este lote está marcado como PARTICIPA antes de añadir.
+                                String loteStr = claveOriginal.substring(0, underscoreIndex);
+
                                 try {
                                     int numLote = Integer.parseInt(loteStr.replace("Lote", ""));
-                                    if (!getParticipacionLote(numLote)) { // <<--- [CLAVE] SI NO PARTICIPA, IGNORAR ARCHIVOS
-                                        log("  - Archivo de oferta '" + nombreConfigurado + "' IGNORADO (Lote " + numLote + " NO marcado como Participa).");
-                                        continue; // Saltar al siguiente archivo
+                                    if (!getParticipacionLote(numLote)) { 
+                                        log(" - Archivo de oferta '" + nombreConfigurado + "' IGNORADO (Lote " + numLote + " NO marcado como Participa).");
+                                        continue; 
                                     }
                                 } catch (NumberFormatException e) {
-                                       // Si el parseo falla, lo tratamos como un error pero continuamos para evitar un crash
-                                       logError("Advertencia: Clave de lote mal formateada: " + loteStr);
+                                    logError("Advertencia: Clave de lote mal formateada: " + loteStr);
                                 }
-                                
-                                
+
                                 nombreConfigurado = claveOriginal.substring(underscoreIndex + 1);
                                 carpetaLote = loteStr.replace("Lote", "Lote ") + "/";
                                 String dirPath = ofertaDirName + carpetaLote;
@@ -457,10 +540,10 @@ public class FileManager implements Serializable {
                         } else {
                             baseEntryName = ofertaDirName + nombreConfigurado + (extension.isEmpty() ? "" : "." + extension);
                         }
-                        
+
                         // Si hemos llegado hasta aquí, el archivo debe ser añadido
                         addFileToZip(zipOut, baseEntryName, fileData.getContenido(), addedEntries);
-                        log("  - Archivo de oferta '" + nombreConfigurado + (extension.isEmpty() ? "" : "." + extension) + "'" + (configuracion.isTieneLotes() ? " (" + carpetaLote.replace("/", "") + ")" : "") + " añadido");
+                        log(" - Archivo de oferta '" + nombreConfigurado + (extension.isEmpty() ? "" : "." + extension) + "'" + (configuracion.isTieneLotes() ? " (" + carpetaLote.replace("/", "") + ")" : "") + " añadido");
                         compressedCount++;
                         publish((int) ((double) compressedCount / totalFiles * 100));
 
@@ -469,7 +552,7 @@ public class FileManager implements Serializable {
                             byte[] contenidoConfidencial = generarContenidoConfidencialDetallado(fileData).getBytes();
                             String zipEntryPathConf = ofertaDirName + carpetaLote + nombreArchivoConfidencial;
                             addFileToZip(zipOut, zipEntryPathConf, contenidoConfidencial, addedEntries);
-                            log("  - Archivo de confidencialidad para '" + nombreConfigurado + "' añadido");
+                            log(" - Archivo de confidencialidad para '" + nombreConfigurado + "' añadido");
                         }
                     }
 
@@ -501,7 +584,8 @@ public class FileManager implements Serializable {
         worker.execute();
     }
 
-    // MÉTODO AUXILIAR RESTAURADO Y ADAPTADO
+    // --- MÉTODOS AUXILIARES Y DE LOTES ---
+    
     private void addFileToZip(ZipOutputStream zipOut, String entryPath, byte[] content, Set<String> addedEntries) throws IOException {
         if (content == null || content.length == 0) {
             logError("Advertencia: No se pudo comprimir la entrada '" + entryPath + "'. Datos nulos o vacíos.");
@@ -519,7 +603,6 @@ public class FileManager implements Serializable {
         addedEntries.add(entryPath);
     }
 
-    // MÉTODO AUXILIAR RESTAURADO Y ADAPTADO
     private String generarContenidoConfidencialDetallado(FileData fileData) {
         StringBuilder sb = new StringBuilder();
         sb.append("--- Declaración de Confidencialidad ---\n\n");
@@ -543,8 +626,6 @@ public class FileManager implements Serializable {
         return sb.toString();
     }
 
-    // MÉTODO AUXILIAR RESTAURADO Y ADAPTADO
-    // Firma modificada para usar LicitadorData
     private String generarContenidoLog(LicitadorData licitadorData, String logContent) {
         StringBuilder sb = new StringBuilder();
         sb.append("--- Log de ejecución de la aplicación ---\n");
@@ -557,7 +638,6 @@ public class FileManager implements Serializable {
         return sb.toString();
     }
 
-    // MÉTODO AUXILIAR RESTAURADO Y ADAPTADO
     private String crearMensajeConfirmacion() {
         StringBuilder sb = new StringBuilder("Por favor, revise la documentación cargada antes de comprimir:\n\n");
 
@@ -569,6 +649,11 @@ public class FileManager implements Serializable {
                 sb.append("- ").append(fileData.getNombre()).append("\n");
             }
         }
+        
+        if (this.anexoAdministrativoData != null) {
+             sb.append("\nEl Anexo Administrativo está GENERADO y listo para incluir.\n");
+        }
+
 
         sb.append("\nOfertas cargadas que serán incluidas (solo lotes marcados):\n");
         if (archivosOferta.isEmpty()) {
@@ -576,16 +661,14 @@ public class FileManager implements Serializable {
         } else {
             if (configuracion.isTieneLotes()) {
                 Set<String> lotesConOfertas = new TreeSet<>();
-                
-                // Primero, identificar qué lotes tienen archivos cargados Y están marcados para participar
+
                 for (String clave : archivosOferta.keySet()) {
                     try {
                         if (clave.startsWith("Lote") && clave.contains("_")) {
                             String loteStr = clave.substring(0, clave.indexOf('_'));
                             int numLote = Integer.parseInt(loteStr.replace("Lote", ""));
-                            
-                            // SOLO incluimos el lote si participa
-                            if (getParticipacionLote(numLote)) { // <<--- [CLAVE] Filtro por participación
+
+                            if (getParticipacionLote(numLote)) { 
                                 lotesConOfertas.add(loteStr);
                             }
                         }
@@ -593,11 +676,10 @@ public class FileManager implements Serializable {
                         logError("Error al parsear el lote de la clave: " + clave + " - " + e.getMessage());
                     }
                 }
-                
+
                 if (lotesConOfertas.isEmpty()) {
-                     sb.append("- No hay archivos de oferta cargados en los lotes seleccionados para participación.\n");
+                    sb.append("- No hay archivos de oferta cargados en los lotes seleccionados para participación.\n");
                 } else {
-                    // Luego, listar los archivos solo de esos lotes
                     for (String lote : lotesConOfertas) {
                         sb.append("\n--- ").append(lote.replace("Lote", "Lote ")).append(" ---\n");
                         for (Map.Entry<String, FileData> entry : archivosOferta.entrySet()) {
@@ -628,23 +710,13 @@ public class FileManager implements Serializable {
         return sb.toString();
     }
     
-    // Dentro de la clase FileManager.java
-
-    /**
-     * Comprueba si el proceso tiene lotes y, en ese caso, si al menos un lote ha sido marcado para participación.
-     * Si no hay lotes, la validación siempre pasa.
-     * @return true si la validación es exitosa, false si ningún lote es marcado en un proceso con lotes.
-     */
     public boolean validarMinimoParticipacion() {
-        // 1. Si NO tiene lotes, la validación siempre pasa.
         if (!configuracion.isTieneLotes()) {
             return true;
         }
 
-        // 2. Si tiene lotes, buscamos al menos una participación marcada.
-        // Usamos el Stream API para mayor claridad y eficiencia.
         boolean alMenosUnLoteSeleccionado = participacionPorLote.values().stream()
-                                             .anyMatch(participa -> participa == true);
+                .anyMatch(participa -> participa == true);
 
         if (!alMenosUnLoteSeleccionado) {
             logError("Validación de participación fallida: Ningún lote marcado para participar.");
@@ -653,28 +725,17 @@ public class FileManager implements Serializable {
 
         return true;
     }
-    
-    // --- LÓGICA DE PARTICIPACIÓN DE LOTES (ADAPTADA) ---
 
-    // [MÉTODO CLAVE 1]: Recibe el estado de participación desde la UI (MainWindow)
-    /**
-     * Sincroniza el estado de participación de lotes desde la UI (MainWindow).
-     * @param lotesSeleccionadosIds Set de IDs de lote (como String: "1", "2", etc.)
-     * que están marcados como 'Sí' en la tabla.
-     */
     public void setParticipacionDesdeUI(Set<String> lotesSeleccionadosIds) {
         if (!configuracion.isTieneLotes()) {
-            return; // No hacer nada si no hay lotes
+            return;
         }
-        
-        // 1. Limpiamos el mapa actual para reflejar solo la selección activa
-        participacionPorLote.clear(); 
-        
-        // 2. Asignamos 'true' solo a los lotes seleccionados
+
+        participacionPorLote.clear();
+
         for (String loteIdStr : lotesSeleccionadosIds) {
             try {
                 int loteNum = Integer.parseInt(loteIdStr);
-                // Solo si el lote existe en la configuración, lo marcamos
                 if (loteNum > 0 && loteNum <= configuracion.getNumLotes()) {
                     participacionPorLote.put(loteNum, true);
                 } else {
@@ -684,56 +745,35 @@ public class FileManager implements Serializable {
                 logError("Error de formato al parsear ID de lote: " + loteIdStr);
             }
         }
-        
+
         log("Estado de participación de lotes actualizado desde la interfaz. Lotes seleccionados: " + lotesSeleccionadosIds.toString());
     }
 
-    // [MÉTODO CLAVE 2]: Obtiene el estado de participación (usado por validaciones y UI)
-    /**
-     * Obtiene el estado de participación para un lote específico.
-     * @param loteNum El número de lote (1, 2, etc.).
-     * @return true si el lote está marcado para participación, false en caso contrario. 
-     * Si es Oferta Única, devuelve true para el lote 1.
-     */
     public boolean getParticipacionLote(int loteNum) {
         if (!configuracion.isTieneLotes()) {
-            // En modo Oferta Única, asumimos siempre la participación en la única oferta (Lote 1).
-            return loteNum == 1; 
+            return loteNum == 1;
         }
-        // En modo Lotes, devuelve el valor del mapa, o 'false' si no existe.
         return participacionPorLote.getOrDefault(loteNum, false);
     }
-    
-    // En FileManager.java, nuevo método
 
-    /**
-     * Elimina todos los archivos de oferta asociados a un lote específico.
-     * @param idLote El ID del lote (ej: "Lote 1", "Lote 2").
-     * @return true si se eliminó al menos un archivo, false en caso contrario.
-     */
     public boolean eliminarArchivosOfertaPorLote(String idLote) {
-        // Convertimos "Lote 1" a "Lote1_" para hacer coincidir con las claves del Map
-        String prefix = idLote.replace(" ", "") + "_"; 
+        String prefix = idLote.replace(" ", "") + "_";
 
-        // Identificamos las claves que deben ser eliminadas.
         List<String> keysToRemove = archivosOferta.keySet().stream()
-                                        .filter(key -> key.startsWith(prefix))
-                                        .collect(Collectors.toList());
+                .filter(key -> key.startsWith(prefix))
+                .collect(Collectors.toList());
 
         if (keysToRemove.isEmpty()) {
-            return false; // No había nada que eliminar
+            return false;
         }
 
-        // Eliminamos los archivos del Map
         for (String key : keysToRemove) {
             archivosOferta.remove(key);
         }
 
-        // Nota: La participación interna se actualiza cuando el usuario pulsa ACEPTAR en el diálogo.
-
         return true;
-    }   
-    
+    }
+
     // --- Getters and Setters ---
     public Map<String, FileData> getArchivosComunes() {
         return Collections.unmodifiableMap(archivosComunes);
@@ -743,6 +783,10 @@ public class FileManager implements Serializable {
         return Collections.unmodifiableMap(archivosOferta);
     }
     
+    public FileData getAnexoAdministrativoData() {
+        return anexoAdministrativoData;
+    }
+
     public LicitadorData getLicitadorData() {
         return licitadorData;
     }

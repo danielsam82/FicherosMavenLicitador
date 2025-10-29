@@ -1,49 +1,51 @@
 package com.licitador.configurator;
 
 import com.licitador.model.ArticuloAnexo;
-// Es necesario renombrar ArticuloAnexoService a ArticuloAnexoService
-import com.licitador.service.ArticuloAnexoService; 
+import com.licitador.service.ArticuloAnexoService;
 import java.awt.*;
-import java.awt.event.ActionListener;
+import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors; // Necesario para ordenar la lista
 import javax.swing.*;
 
 public class ArticuloManagerDialog extends JDialog {
 
-    // CAMBIO: Usar el servicio renombrado
-    private final ArticuloAnexoService articuloService; 
-    private List<ArticuloAnexo> articulos; // Lista ahora de ArticuloAnexo
-    private JList<ArticuloAnexo> listaArticulos; // Componente JList renombrado
+    private final ArticuloAnexoService articuloService;
+    private List<ArticuloAnexo> articulos;
+    private JList<ArticuloAnexo> listaArticulos;
     private DefaultListModel<ArticuloAnexo> listModel;
 
-    // Componentes del formulario de edición
+    // Componentes del formulario de edición BASE
     private JTextField txtId;
     private JTextField txtTitulo;
-    private JTextField txtOrden; // NUEVO: Campo para el orden
-    private JTextArea txtContenidoFormato; // CAMBIO: De XML a Contenido Formato
-    private JCheckBox chkRequiereFirma; // CAMBIO: De Datos Adicionales a Requiere Firma
-    private JComboBox<String> cmbTags; // NUEVO: Para inserción de etiquetas
+    private JTextField txtOrden;
+    private JTextArea txtContenidoFormato;
+    private JCheckBox chkRequiereFirma;
+    private JComboBox<String> cmbTags;
+
+    // --- NUEVOS CAMPOS DE INTERACTIVIDAD ---
+    private JCheckBox chkEsInteractivo;
+    private JTextArea txtPreguntaInteractiva;
+    private JComboBox<String> cmbAccionSi;
+    private JTextField[] txtEtiquetasCampos = new JTextField[4]; 
+    private JPanel pnlCamposEtiquetas; // Panel que contiene los 4 campos
 
     private JButton btnNuevo;
     private JButton btnGuardar;
     private JButton btnEliminar;
-    private JButton btnInsertTag; // NUEVO: Botón para insertar etiquetas
+    private JButton btnInsertTag;
 
     /**
      * Constructor del diálogo de gestión de Artículos de Anexos.
      */
     public ArticuloManagerDialog(Frame owner) {
-        // CAMBIO: Título del diálogo
-        super(owner, "Gestor de Artículos de Anexo Global", true); 
-        // CAMBIO: Instanciar el servicio renombrado
+        super(owner, "Gestor de Artículos de Anexo Global", true);
         this.articuloService = new ArticuloAnexoService();
-        this.articulos = articuloService.cargarArticulos(); // Cargar Artículos
-        
+        this.articulos = articuloService.cargarArticulos();
+
         initComponents();
         loadListModel();
-        
-        setSize(900, 700);
+
+        setSize(900, 750); // Aumento del tamaño para la nueva sección
         setLocationRelativeTo(owner);
     }
 
@@ -54,27 +56,26 @@ public class ArticuloManagerDialog extends JDialog {
         listModel = new DefaultListModel<>();
         listaArticulos = new JList<>(listModel);
         listaArticulos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        // CAMBIO: Usar el CellRenderer renombrado
-        listaArticulos.setCellRenderer(new ArticuloListCellRenderer()); 
-        
+        listaArticulos.setCellRenderer(new ArticuloListCellRenderer());
+
         listaArticulos.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && listaArticulos.getSelectedIndex() != -1) {
                 displayArticulo(listaArticulos.getSelectedValue());
             }
         });
-        
+
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.setBorder(BorderFactory.createTitledBorder("Artículos Existentes (Maestro)"));
         leftPanel.add(new JScrollPane(listaArticulos), BorderLayout.CENTER);
-        
+
         // --- Panel Central: Formulario de Edición ---
         JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setBorder(BorderFactory.createTitledBorder("Detalles del Artículo"));
-        
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        
+
         // Fila 1: ID
         gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
         formPanel.add(new JLabel("ID Único:"), gbc);
@@ -88,48 +89,53 @@ public class ArticuloManagerDialog extends JDialog {
         gbc.gridx = 1; gbc.weightx = 1;
         txtOrden = new JTextField(5);
         formPanel.add(txtOrden, gbc);
-        
+
         // Fila 3: Título
         gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
         formPanel.add(new JLabel("Título:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1;
         txtTitulo = new JTextField(20);
         formPanel.add(txtTitulo, gbc);
-        
+
         // Fila 4: Requiere Firma
         gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2; gbc.weightx = 1;
         chkRequiereFirma = new JCheckBox("Este artículo requiere una línea de firma específica.");
         formPanel.add(chkRequiereFirma, gbc);
         
-        // Fila 5: Controles de Inserción de Etiquetas
-        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2; 
+        // --- NUEVA SECCIÓN: INTERACTIVIDAD (Fila 5) ---
+        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2; gbc.weighty = 0; gbc.fill = GridBagConstraints.HORIZONTAL;
+        formPanel.add(createInteractividadPanel(), gbc);
+        // --- FIN NUEVA SECCIÓN ---
+
+        // Fila 6: Controles de Inserción de Etiquetas
+        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 2; 
         gbc.weighty = 0; gbc.fill = GridBagConstraints.HORIZONTAL;
-        
+
         JPanel xmlControlsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         xmlControlsPanel.add(new JLabel("Insertar Dato Licitador/Expediente:"));
-        
+
         String[] tags = {"NIF_CIF", "RAZON_SOCIAL", "NOMBRE_EMPRESA", "CARGO_REPRESENTANTE", "EXPEDIENTE", "OBJETO"};
         cmbTags = new JComboBox<>(tags);
         xmlControlsPanel.add(cmbTags);
-        
+
         btnInsertTag = new JButton("Insertar Etiqueta");
         btnInsertTag.addActionListener(e -> insertTag());
         xmlControlsPanel.add(btnInsertTag);
-        
-        formPanel.add(xmlControlsPanel, gbc); 
 
-        // Fila 6: Área de Contenido Formato
-        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 2; gbc.weightx = 1;
+        formPanel.add(xmlControlsPanel, gbc);
+
+        // Fila 7: Área de Contenido Formato
+        gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 2; gbc.weightx = 1;
         gbc.weighty = 1; gbc.fill = GridBagConstraints.BOTH; 
         formPanel.add(new JLabel("Contenido (Texto con posible formato/tags):"), gbc);
-        
-        gbc.gridy = 6; gbc.weightx = 1; gbc.weighty = 5;
-        txtContenidoFormato = new JTextArea(15, 60); // CAMBIO de nombre de variable
+
+        gbc.gridy = 7; gbc.weightx = 1; gbc.weighty = 5;
+        txtContenidoFormato = new JTextArea(10, 60); 
         txtContenidoFormato.setFont(new Font("Monospaced", Font.PLAIN, 12));
         txtContenidoFormato.setLineWrap(true);
         txtContenidoFormato.setWrapStyleWord(true);
         formPanel.add(new JScrollPane(txtContenidoFormato), gbc);
-        
+
         // --- Panel Sur: Botones de Acción ---
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         btnNuevo = new JButton("Nuevo");
@@ -146,48 +152,149 @@ public class ArticuloManagerDialog extends JDialog {
         // --- Asignar Listeners ---
         btnNuevo.addActionListener(e -> nuevoArticulo());
         btnGuardar.addActionListener(e -> guardarArticulo());
-        btnEliminar.addActionListener(e -> eliminarArticulo()); // CAMBIO de nombre de método
+        btnEliminar.addActionListener(e -> eliminarArticulo());
         btnCerrar.addActionListener(e -> dispose());
 
         // --- Ensamblaje Final ---
         add(leftPanel, BorderLayout.WEST);
         add(formPanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
-        
+
         clearForm();
     }
     
-    // --------------------------------------------------------------------------
-    // --- LÓGICA DE GESTIÓN ---
-    // --------------------------------------------------------------------------
-    
-    /** Carga la lista de artículos, la ordena y la muestra en el JList */
-    private void loadListModel() {
-        // Ordenamos la lista de artículos por el campo 'orden' para mejor visualización
-        articulos.sort((a1, a2) -> Integer.compare(a1.getOrden(), a2.getOrden()));
+    /**
+     * Crea y configura el panel de lógica de interactividad (Pregunta/Acción).
+     */
+    private JPanel createInteractividadPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Lógica de Interacción (Si/No)"));
         
-        listModel.clear();
-        articulos.forEach(listModel::addElement);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Fila 1: Checkbox para habilitar la interactividad
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+        chkEsInteractivo = new JCheckBox("Este artículo requiere una pregunta de adhesión (Sí/No)");
+        panel.add(chkEsInteractivo, gbc);
+        
+        // Fila 2: Pregunta
+        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 1; gbc.weightx = 0;
+        panel.add(new JLabel("Pregunta:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        txtPreguntaInteractiva = new JTextArea(2, 40);
+        txtPreguntaInteractiva.setLineWrap(true);
+        txtPreguntaInteractiva.setWrapStyleWord(true);
+        panel.add(new JScrollPane(txtPreguntaInteractiva), gbc);
+        
+        // Fila 3: Acción si "Sí"
+        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
+        panel.add(new JLabel("Acción si [Sí] es la respuesta:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        String[] acciones = {ArticuloAnexo.ACCION_NINGUNA, ArticuloAnexo.ACCION_PEDIR_CAMPOS, ArticuloAnexo.ACCION_PEDIR_FICHERO};
+        cmbAccionSi = new JComboBox<>(acciones);
+        panel.add(cmbAccionSi, gbc);
+
+        // Fila 4: Panel para las 4 Etiquetas (visible solo si se elige PEDIR_CAMPOS)
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2; gbc.weightx = 1;
+        pnlCamposEtiquetas = new JPanel(new GridLayout(2, 4, 5, 5));
+        pnlCamposEtiquetas.setBorder(BorderFactory.createTitledBorder("Etiquetas de Campos a Cumplimentar (Máx 4)"));
+        
+        for (int i = 0; i < 4; i++) {
+            txtEtiquetasCampos[i] = new JTextField(10);
+            pnlCamposEtiquetas.add(new JLabel("Campo " + (i + 1) + " Etiqueta:"));
+            pnlCamposEtiquetas.add(txtEtiquetasCampos[i]);
+        }
+        panel.add(pnlCamposEtiquetas, gbc);
+        
+        // Configurar los Listeners de visibilidad
+        chkEsInteractivo.addActionListener(e -> toggleInteractividad());
+        cmbAccionSi.addActionListener(e -> toggleEtiquetasCampos());
+        
+        // Inicializar
+        toggleInteractividad();
+        
+        return panel;
+    }
+
+    /**
+     * Controla la visibilidad de los controles de pregunta y acción.
+     */
+    private void toggleInteractividad() {
+        boolean enabled = chkEsInteractivo.isSelected();
+        txtPreguntaInteractiva.setEnabled(enabled);
+        cmbAccionSi.setEnabled(enabled);
+        toggleEtiquetasCampos(); // Llamar para actualizar el panel de campos
+        if (!enabled) {
+            // Limpiar si se deshabilita
+            txtPreguntaInteractiva.setText("");
+            cmbAccionSi.setSelectedItem(ArticuloAnexo.ACCION_NINGUNA);
+        }
+    }
+
+    /**
+     * Controla la visibilidad de los campos de etiqueta según la acción.
+     */
+    private void toggleEtiquetasCampos() {
+        boolean visible = chkEsInteractivo.isSelected() && 
+                          ArticuloAnexo.ACCION_PEDIR_CAMPOS.equals(cmbAccionSi.getSelectedItem());
+        
+        pnlCamposEtiquetas.setVisible(visible);
+        
+        if (!visible) {
+            // Limpiar los campos si no son visibles
+            for(JTextField txt : txtEtiquetasCampos) {
+                txt.setText("");
+            }
+        }
+        pnlCamposEtiquetas.revalidate();
+        pnlCamposEtiquetas.repaint();
     }
     
+    // --------------------------------------------------------------------------
+    // --- LÓGICA DE GESTIÓN (ADAPTADA) ---
+    // --------------------------------------------------------------------------
+
     /** Muestra los datos del artículo seleccionado en el formulario. */
     private void displayArticulo(ArticuloAnexo articulo) {
         if (articulo == null) {
             clearForm();
             return;
         }
-        // CAMBIOS DE GETTERS
+
+        // --- CAMPOS BASE ---
         txtId.setText(articulo.getIdArticulo());
         txtId.setEnabled(false);
-        txtOrden.setText(String.valueOf(articulo.getOrden())); // Nuevo campo
+        txtOrden.setText(String.valueOf(articulo.getOrden()));
         txtTitulo.setText(articulo.getTitulo());
-        txtContenidoFormato.setText(articulo.getContenidoFormato()); // Nuevo getter
-        chkRequiereFirma.setSelected(articulo.isRequiereFirma()); // Nuevo getter
-        
+        txtContenidoFormato.setText(articulo.getContenidoFormato());
+        chkRequiereFirma.setSelected(articulo.isRequiereFirma());
+
+        // --- CAMPOS INTERACTIVOS ---
+        boolean esInteractivo = articulo.esInteractivo();
+        chkEsInteractivo.setSelected(esInteractivo);
+        txtPreguntaInteractiva.setText(articulo.getPreguntaInteractiva());
+        cmbAccionSi.setSelectedItem(articulo.getAccionSi());
+
+        // Campos de etiqueta
+        String[] etiquetas = articulo.getEtiquetasCampos();
+        for (int i = 0; i < 4; i++) {
+            if (i < etiquetas.length) {
+                txtEtiquetasCampos[i].setText(etiquetas[i]);
+            } else {
+                txtEtiquetasCampos[i].setText("");
+            }
+        }
+
+        // Actualizar la visibilidad de la GUI
+        toggleInteractividad();
+
         btnEliminar.setEnabled(true);
         btnGuardar.setEnabled(true);
     }
-    
+
     /** Limpia el formulario para crear un nuevo artículo. */
     private void nuevoArticulo() {
         clearForm();
@@ -196,7 +303,7 @@ public class ArticuloManagerDialog extends JDialog {
         btnGuardar.setEnabled(true);
         txtId.requestFocus();
     }
-    
+
     /** Reinicia todos los campos del formulario. */
     private void clearForm() {
         txtId.setText("");
@@ -204,6 +311,16 @@ public class ArticuloManagerDialog extends JDialog {
         txtTitulo.setText("");
         txtContenidoFormato.setText("");
         chkRequiereFirma.setSelected(false);
+        
+        // Limpieza de campos interactivos
+        chkEsInteractivo.setSelected(false);
+        txtPreguntaInteractiva.setText("");
+        cmbAccionSi.setSelectedItem(ArticuloAnexo.ACCION_NINGUNA);
+        for(JTextField txt : txtEtiquetasCampos) {
+            txt.setText("");
+        }
+        toggleInteractividad(); // Restablece el estado de los componentes
+
         txtId.setEnabled(true);
         btnEliminar.setEnabled(false);
         btnGuardar.setEnabled(false);
@@ -242,6 +359,38 @@ public class ArticuloManagerDialog extends JDialog {
             return;
         }
         
+        // --- RECOLECCIÓN DE DATOS INTERACTIVOS ---
+        String pregunta = "";
+        String accion = ArticuloAnexo.ACCION_NINGUNA;
+        String[] etiquetas;
+
+        if (chkEsInteractivo.isSelected()) {
+            pregunta = txtPreguntaInteractiva.getText().trim();
+            accion = (String) cmbAccionSi.getSelectedItem();
+            
+            if (pregunta.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Debe ingresar el texto de la Pregunta Interactiva.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            if (ArticuloAnexo.ACCION_PEDIR_CAMPOS.equals(accion)) {
+                // Recolectar solo las etiquetas no vacías
+                etiquetas = Arrays.stream(txtEtiquetasCampos)
+                                  .map(txt -> txt.getText().trim())
+                                  .filter(tag -> !tag.isEmpty())
+                                  .toArray(String[]::new);
+                
+                if (etiquetas.length == 0) {
+                     JOptionPane.showMessageDialog(this, "Ha seleccionado 'Pedir Campos' pero no ha definido ninguna etiqueta.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
+                     return;
+                }
+            } else {
+                etiquetas = new String[0];
+            }
+        } else {
+            etiquetas = new String[0];
+        }
+        
         // Búsqueda de artículo por ID
         ArticuloAnexo articuloExistente = articulos.stream()
                 .filter(a -> a.getIdArticulo().equalsIgnoreCase(id))
@@ -250,8 +399,9 @@ public class ArticuloManagerDialog extends JDialog {
         
         if (articuloExistente == null) {
             // Creación
-            // Uso del constructor actualizado
-            ArticuloAnexo nuevo = new ArticuloAnexo(id, orden, titulo, contenido, requiereFirma); 
+            // Uso del constructor de 8 argumentos
+            ArticuloAnexo nuevo = new ArticuloAnexo(id, orden, titulo, contenido, requiereFirma,
+                                                    pregunta, accion, etiquetas); 
             articulos.add(nuevo);
         } else {
             // Edición
@@ -259,10 +409,14 @@ public class ArticuloManagerDialog extends JDialog {
             articuloExistente.setTitulo(titulo);
             articuloExistente.setContenidoFormato(contenido);
             articuloExistente.setRequiereFirma(requiereFirma);
+            // Establecer campos interactivos
+            articuloExistente.setPreguntaInteractiva(pregunta);
+            articuloExistente.setAccionSi(accion);
+            articuloExistente.setEtiquetasCampos(etiquetas);
         }
         
         // Persistencia y recarga
-        articuloService.guardarArticulos(articulos); // CAMBIO de nombre de método en el servicio
+        articuloService.guardarArticulos(articulos);
         loadListModel();
         
         JOptionPane.showMessageDialog(this, "Artículo '" + titulo + "' guardado correctamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
@@ -280,26 +434,41 @@ public class ArticuloManagerDialog extends JDialog {
         
         if (confirm == JOptionPane.YES_OPTION) {
             articulos.remove(articuloSeleccionado);
-            articuloService.guardarArticulos(articulos); // CAMBIO de nombre de método en el servicio
+            articuloService.guardarArticulos(articulos);
             loadListModel();
             clearForm();
             JOptionPane.showMessageDialog(this, "Artículo eliminado.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
+    /** Carga la lista de artículos, la ordena y la muestra en el JList */
+    private void loadListModel() {
+        // Ordenamos la lista de artículos por el campo 'orden' para mejor visualización
+        articulos.sort((a1, a2) -> Integer.compare(a1.getOrden(), a2.getOrden()));
+        
+        listModel.clear();
+        articulos.forEach(listModel::addElement);
+    }
+
     // --------------------------------------------------------------------------
-    // --- CLASE INTERNA: RENDERER (Renombrada) ---
+    // --- CLASE INTERNA: RENDERER ---
     // --------------------------------------------------------------------------
     
-    // CAMBIO: Renombrada a ArticuloListCellRenderer
     public static class ArticuloListCellRenderer extends DefaultListCellRenderer {
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof ArticuloAnexo) {
                 ArticuloAnexo articulo = (ArticuloAnexo) value;
-                // CAMBIO: Usa el toString() de ArticuloAnexo para mostrar (Orden) Título [ID]
-                setText(articulo.toString());
+                // Ahora el toString() refleja si es interactivo
+                setText(articulo.toString()); 
+                
+                // Opcional: Color de fondo diferente para artículos interactivos
+                if (articulo.esInteractivo() && !isSelected) {
+                    setBackground(new Color(255, 255, 204)); // Amarillo claro
+                } else if (!isSelected) {
+                    setBackground(list.getBackground());
+                }
             }
             return this;
         }
