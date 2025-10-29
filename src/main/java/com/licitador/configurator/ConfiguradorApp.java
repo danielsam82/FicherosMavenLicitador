@@ -2,10 +2,10 @@ package com.licitador.configurator;
 
 import com.licitador.model.LicitacionData;
 import com.licitador.model.ArchivoRequerido;
-import com.licitador.model.AnexoAdministrativo;
+import com.licitador.model.ArticuloAnexo;
 import com.licitador.service.TextAreaLogger;
 import com.licitador.service.Logger;
-import com.licitador.service.AnexoAdministrativoService;
+import com.licitador.service.ArticuloAnexoService;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
@@ -32,10 +32,10 @@ public class ConfiguradorApp extends JFrame {
     private JPanel pnlDocumentos;
 
     // --- NUEVOS CAMPOS PARA ANEXOS ---
-    private JList<AnexoAdministrativo> listaAnexosDisponibles;
-    private DefaultListModel<AnexoAdministrativo> listModelAnexos;
-    private List<AnexoAdministrativo> anexosSeleccionados = new ArrayList<>();
-    private final AnexoAdministrativoService anexoService = new AnexoAdministrativoService();
+    private JList<ArticuloAnexo> listaAnexosDisponibles;
+    private DefaultListModel<ArticuloAnexo> listModelAnexos;
+    private List<ArticuloAnexo> anexosSeleccionados = new ArrayList<>();
+    private final ArticuloAnexoService anexoService = new ArticuloAnexoService();
     // ----------------------------------
 
     // Campos añadidos para el sistema de Logging
@@ -62,9 +62,13 @@ public class ConfiguradorApp extends JFrame {
      * Carga la lista maestra de anexos en el ListModel.
      */
     private void cargarAnexosDisponibles() {
+        // Cargar la lista solo una vez
+        List<ArticuloAnexo> articulosCargados = anexoService.cargarArticulos();
+
         listModelAnexos.clear();
-        anexoService.cargarAnexos().forEach(listModelAnexos::addElement);
-        logger.logInfo("Base de datos de anexos cargada (" + anexoService.cargarAnexos().size() + " anexos)");
+        articulosCargados.forEach(listModelAnexos::addElement);
+
+        logger.logInfo("Base de datos de anexos cargada (" + articulosCargados.size() + " artículos)");
     }
     // -----------------------------
 
@@ -158,7 +162,7 @@ public class ConfiguradorApp extends JFrame {
 
     private void abrirGestorAnexos() {
         // Abre el diálogo de gestión de anexos (que carga y guarda la lista maestra)
-        AnexoManagerDialog dialog = new AnexoManagerDialog(this);
+        ArticuloManagerDialog dialog = new ArticuloManagerDialog(this);
         dialog.setVisible(true);
 
         // Recargar la lista de anexos después de que el diálogo se cierre
@@ -287,7 +291,7 @@ public class ConfiguradorApp extends JFrame {
 
         // Configuración de la lista de anexos disponibles (con selección múltiple)
         listaAnexosDisponibles.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        listaAnexosDisponibles.setCellRenderer(new AnexoManagerDialog.AnexoListCellRenderer());
+        listaAnexosDisponibles.setCellRenderer(new ArticuloManagerDialog.ArticuloListCellRenderer());
 
         JScrollPane scrollPane = new JScrollPane(listaAnexosDisponibles);
 
@@ -295,7 +299,7 @@ public class ConfiguradorApp extends JFrame {
         listaAnexosDisponibles.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 anexosSeleccionados.clear();
-                for (AnexoAdministrativo anexo : listaAnexosDisponibles.getSelectedValuesList()) {
+                for (ArticuloAnexo anexo : listaAnexosDisponibles.getSelectedValuesList()) {
                     anexosSeleccionados.add(anexo);
                 }
                 logger.logInfo("Anexos seleccionados para esta licitación: " + anexosSeleccionados.size());
@@ -473,7 +477,7 @@ public class ConfiguradorApp extends JFrame {
                 numLotes,
                 archivosComunesList.toArray(new ArchivoRequerido[0]),
                 documentosOfertaList.toArray(new ArchivoRequerido[0]),
-                anexosSeleccionados.toArray(new AnexoAdministrativo[0]) // Se añade la lista de anexos
+                anexosSeleccionados.toArray(new ArticuloAnexo[0]) // Se añade la lista de anexos
         );
 
         logger.logInfo("Datos de licitación recolectados correctamente.");

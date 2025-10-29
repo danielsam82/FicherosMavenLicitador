@@ -24,7 +24,7 @@ public class LicitacionData implements Serializable {
     private final int numLotes;
     private final ArchivoRequerido[] archivosComunes;
     private final ArchivoRequerido[] documentosOferta;
-    private final AnexoAdministrativo[] anexosAdministrativos;
+    private final ArticuloAnexo[] anexosAdministrativos;
 
     /**
      * Constructor que inicializa todos los campos de datos de la licitación.
@@ -41,7 +41,7 @@ public class LicitacionData implements Serializable {
      */
     public LicitacionData(String expediente, String objeto, boolean tieneLotes, int numLotes,
             ArchivoRequerido[] archivosComunes, ArchivoRequerido[] documentosOferta,
-            AnexoAdministrativo[] anexosAdministrativos) {
+            ArticuloAnexo[] anexosAdministrativos) {
         this.expediente = expediente;
         this.objeto = objeto;
         this.tieneLotes = tieneLotes;
