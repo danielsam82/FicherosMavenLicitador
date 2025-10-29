@@ -121,4 +121,14 @@ public class LicitacionData implements Serializable {
                 Arrays.toString(documentosOferta)
         );
     }
+
+    /**
+     * Obtiene el array de artículos del anexo administrativo. Es un alias para
+     * getAnexosAdministrativos() usado por el AnexoGenerator.
+     *
+     * @return Un array de objetos ArticuloAnexo.
+     */
+    public ArticuloAnexo[] getArticulosAnexos() {
+        return anexosAdministrativos;
+    }
 }
