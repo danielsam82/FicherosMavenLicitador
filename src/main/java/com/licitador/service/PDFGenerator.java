@@ -2,8 +2,11 @@ package com.licitador.service;
 
 import com.licitador.model.LicitadorData;
 import com.licitador.service.Configuracion;
+import com.licitador.model.ArticuloAnexo;
+import com.licitador.jar.model.RequerimientoLicitador;
 
-import com.lowagie.text.*; // Importaciones principales de OpenPDF (lowagie.text)
+// Importaciones clave de OpenPDF
+import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfWriter;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfPCell;
@@ -11,182 +14,293 @@ import com.lowagie.text.pdf.PdfPCell;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
-import java.awt.Color; // Para colores de tabla/celdas
+import java.util.List;
+import java.util.Arrays;
+import java.awt.Color;
+import java.util.HashMap;
+import java.io.File; 
 
 /**
- * Generador real de PDF utilizando la librería OpenPDF (lowagie.text). Crea el
- * Anexo Administrativo con los datos del licitador.
+ * Generador de PDF usando OpenPDF 1.3.29. Construcción MANUAL.
+ * (CORREGIDO: HeaderFooterEvent SÓLO maneja cabecera/pie.
+ * Esta clase maneja TODO el contenido, incluyendo títulos y bloque licitador).
  */
 public class PDFGenerator {
 
-    // --- CONFIGURACIÓN DE FUENTES Y ESTILOS ---
-    private static final Font FONT_TITLE = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14, Color.BLACK);
-    private static final Font FONT_HEADER = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, Color.BLACK);
-    private static final Font FONT_NORMAL = FontFactory.getFont(FontFactory.HELVETICA, 10, Color.BLACK);
-    private static final Font FONT_BOLD = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.BLACK);
-    private static final Color COLOR_HEADER_BG = new Color(230, 230, 230);
+    // --- Definición de Fuentes ---
+    private static final Font FONT_TITULO_PRINCIPAL = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Font.UNDERLINE, new Color(0, 128, 0));
+    private static final Font FONT_TITULO_SECUNDARIO = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Font.UNDERLINE, new Color(0, 128, 0));
+    private static final Font FONT_DECLARA = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.BLACK);
+    private static final Font FONT_LICITADOR_NORMAL = FontFactory.getFont(FontFactory.HELVETICA, 10, Color.BLACK);
+    private static final Font FONT_LICITADOR_BOLD = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.BLACK);
+    private static final Font FONT_ARTICULO_TITULO = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, Color.BLACK);
+    private static final Font FONT_ARTICULO_CONTENIDO = FontFactory.getFont(FontFactory.HELVETICA, 8, Color.BLACK);
+    private static final Font FONT_ARTICULO_RESPUESTA = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, new Color(0, 102, 204));
+    private static final Font FONT_ARTICULO_DETALLE = FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 8, Color.GRAY);
 
     /**
-     * Genera el Anexo Administrativo en formato PDF con OpenPDF.
-     *
-     * @param licitadorData Datos del licitador.
-     * @param participacionPorLote Mapa de lotes seleccionados.
-     * @param configuracion Objeto de configuración para obtener el expediente.
-     * @return Array de bytes con el contenido del PDF binario.
-     * @throws DocumentException Si hay un error en la estructura del PDF.
-     * @throws IOException Si hay un error de I/O al escribir el PDF.
+     * Genera el Anexo Administrativo en formato PDF (Construcción Manual).
      */
-    public static byte[] generarAnexoAdministrativo(
+    public static byte[] generarAnexoManual(
             LicitadorData licitadorData,
-            Map<Integer, Boolean> participacionPorLote,
-            Configuracion configuracion) throws DocumentException, IOException {
+            Configuracion configuracion,
+            List<RequerimientoLicitador> respuestas
+    ) throws DocumentException, IOException {
 
-        // Usamos ByteArrayOutputStream para capturar el PDF en memoria.
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            Document document = new Document(PageSize.A4, 50, 50, 50, 50);
-            PdfWriter.getInstance(document, baos);
+
+            // 1. Crear Documento (Márgenes AJUSTADOS)
+            // Dejamos 90pt arriba para el HeaderFooterEvent (Pliego/Logo/Línea)
+            // y 50pt abajo para el pie de página.
+            Document document = new Document(PageSize.A4, 50, 50, 120, 50); 
+
+            // 2. Crear PdfWriter y asignar Evento de Página
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
+            // Le pasamos licitadorData al constructor, ya que ahora lo requiere
+            HeaderFooterEvent event = new HeaderFooterEvent(configuracion, licitadorData);
+            writer.setPageEvent(event); // El evento dibujará Pliego/Logo/Línea
+
             document.open();
 
-            // 1. TÍTULO
-            Paragraph title = new Paragraph("ANEXO DE CUMPLIMENTACIÓN ADMINISTRATIVA", FONT_TITLE);
-            title.setAlignment(Element.ALIGN_CENTER);
-            title.setSpacingAfter(15);
-            document.add(title);
+            // 3. TÍTULO 1 (ANEXO REQUISITOS...)
+            Paragraph titulo1 = new Paragraph("ANEXO REQUISITOS PREVIOS DE PARTICIPACIÓN", FONT_TITULO_PRINCIPAL);
+            titulo1.setAlignment(Element.ALIGN_CENTER);
+            // --- CORRECCIÓN DE ESPACIADO ---
+            // El margen superior (90) ya nos da espacio.
+            // Añadimos solo un poco de espacio (10pt) DESPUÉS de la línea negra.
+            titulo1.setSpacingBefore(5);
+            titulo1.setSpacingAfter(5);
+            document.add(titulo1);
 
-            // 2. DATOS DEL PROCEDIMIENTO
-            PdfPTable infoTable = new PdfPTable(2);
-            infoTable.setWidthPercentage(100);
-            infoTable.addCell(createCell("Expediente N.º:", configuracion.getNumeroExpediente(), FONT_BOLD, FONT_NORMAL));
-            infoTable.addCell(createCell("Objeto de la Licitación:", configuracion.getObjetoLicitacion(), FONT_BOLD, FONT_NORMAL));
-            infoTable.setSpacingAfter(15);
-            document.add(infoTable);
+            // 4. TÍTULO 2 (DOCUMENTACIÓN ADMINISTRATIVA)
+            Paragraph titulo2 = new Paragraph("DOCUMENTACIÓN ADMINISTRATIVA", FONT_TITULO_SECUNDARIO);
+            titulo2.setAlignment(Element.ALIGN_CENTER);
+            titulo2.setSpacingBefore(5);
+            titulo2.setSpacingAfter(25); // Espacio antes del bloque D./Dª
+            document.add(titulo2);
 
-            // 3. DATOS DEL LICITADOR
-            document.add(new Paragraph("DATOS DE LA EMPRESA LICITADORA", FONT_HEADER));
-            document.add(createLicitadorTable(licitadorData));
+            // 5. BLOQUE DE DATOS DEL LICITADOR
+            Phrase bloqueLicitador = new Phrase("", FONT_LICITADOR_NORMAL);
+            bloqueLicitador.add(new Chunk("D./Dª "));
+            bloqueLicitador.add(new Chunk(licitadorData.getNombreApoderado(), FONT_LICITADOR_BOLD));
+            bloqueLicitador.add(new Chunk(", con D.N.I. número "));
+            bloqueLicitador.add(new Chunk(licitadorData.getNifApoderado(), FONT_LICITADOR_BOLD));
+            bloqueLicitador.add(new Chunk(", actuando en su propio nombre y derecho/en representación de la empresa "));
+            bloqueLicitador.add(new Chunk(licitadorData.getRazonSocial(), FONT_LICITADOR_BOLD));
+            bloqueLicitador.add(new Chunk(" con NIF de la EMPRESA y con domicilio profesional en "));
+            bloqueLicitador.add(new Chunk(licitadorData.getDomicilio(), FONT_LICITADOR_BOLD));
+            bloqueLicitador.add(new Chunk(" en su calidad de "));
+            bloqueLicitador.add(new Chunk(licitadorData.getCalidadApoderado(), FONT_LICITADOR_BOLD));
+            bloqueLicitador.add(new Chunk(" con número de teléfono "));
+            bloqueLicitador.add(new Chunk(licitadorData.getTelefono(), FONT_LICITADOR_BOLD));
+            bloqueLicitador.add(new Chunk(" y correo electrónico "));
+            bloqueLicitador.add(new Chunk(licitadorData.getEmail(), FONT_LICITADOR_BOLD));
 
-            // 4. DECLARACIONES Y LOTES
-            document.add(new Paragraph("DECLARACIONES Y PARTICIPACIÓN EN LOTES", FONT_HEADER));
-            document.add(createDeclaracionTable(licitadorData));
+            Paragraph pLicitador = new Paragraph(bloqueLicitador);
+            pLicitador.setAlignment(Element.ALIGN_JUSTIFIED);
+            pLicitador.setSpacingAfter(20); 
+            document.add(pLicitador);
 
-            if (configuracion.isTieneLotes()) {
-                document.add(new Paragraph("LOTES SELECCIONADOS PARA PARTICIPACIÓN", FONT_HEADER));
-                document.add(createLoteTable(participacionPorLote));
-            } else {
-                document.add(new Paragraph("Licitación de Oferta Única: Participación Confirmada.", FONT_NORMAL));
+            // 6. DECLARA
+            Paragraph declara = new Paragraph("DECLARA", FONT_DECLARA);
+            declara.setAlignment(Element.ALIGN_CENTER);
+            declara.setSpacingAfter(15); 
+            document.add(declara);
+
+            // 7. ARTÍCULOS EN DOS COLUMNAS
+            Map<String, RequerimientoLicitador> respuestasMap = new HashMap<>();
+            for (RequerimientoLicitador req : respuestas) {
+                respuestasMap.put(req.getIdArticulo(), req);
             }
 
+            ArticuloAnexo[] articulos = configuracion.getArticulosAnexos();
+            if (articulos == null) {
+                articulos = new ArticuloAnexo[0];
+            }
+            Arrays.sort(articulos, (a1, a2) -> Integer.compare(a1.getOrden(), a2.getOrden()));
+
+            PdfPTable table = new PdfPTable(2);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{1, 1});
+            table.setSpacingBefore(10); 
+            table.setSplitLate(false);
+            table.setSplitRows(true);
+            table.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+            table.getDefaultCell().setPadding(5);
+
+            for (int i = 0; i < articulos.length; i++) {
+                ArticuloAnexo articulo = articulos[i];
+
+                PdfPCell cell = new PdfPCell();
+                cell.setBorder(Rectangle.NO_BORDER); 
+                cell.setPadding(5);
+                cell.setPaddingLeft(10); 
+                cell.setPaddingRight(10); 
+
+                // --- Línea Separadora a la Derecha ---
+                if (i % 2 == 0 && i < articulos.length - 1) { 
+                    cell.setBorderWidthRight(0.5f);
+                    cell.setBorderColorRight(Color.LIGHT_GRAY);
+                }
+
+                Phrase tituloArticuloPhrase = new Phrase("", FONT_ARTICULO_TITULO);
+                tituloArticuloPhrase.add(new Chunk(String.format("Apartado nº. %d. ", articulo.getOrden())));
+                tituloArticuloPhrase.add(new Chunk(articulo.getTitulo(), FONT_ARTICULO_TITULO));
+                tituloArticuloPhrase.add(new Chunk(" — ", FONT_ARTICULO_TITULO));
+
+                Paragraph pTituloArticulo = new Paragraph(tituloArticuloPhrase);
+                pTituloArticulo.setSpacingAfter(2);
+                cell.addElement(pTituloArticulo);
+
+                Paragraph contenidoParrafo = new Paragraph("", FONT_ARTICULO_CONTENIDO);
+                contenidoParrafo.setIndentationLeft(10);
+                contenidoParrafo.setAlignment(Element.ALIGN_JUSTIFIED); 
+
+                if (!articulo.esInteractivo()) {
+                    String contenidoSustituido = sustituirTagsManualmente(articulo.getContenidoFormato(), licitadorData, configuracion, respuestasMap);
+                    for (String linea : contenidoSustituido.split("\n")) {
+                        contenidoParrafo.add(new Chunk(linea, FONT_ARTICULO_CONTENIDO));
+                        contenidoParrafo.add(Chunk.NEWLINE);
+                    }
+                } else {
+                    RequerimientoLicitador req = respuestasMap.get(articulo.getIdArticulo());
+                    if (req != null) {
+                        String contenidoRespuesta = adaptarContenidoRespuesta(articulo, req, licitadorData, configuracion, respuestasMap);
+                        
+                        for (String linea : contenidoRespuesta.split("\n")) {
+                            if (linea.startsWith("[Respuesta:")) {
+                                contenidoParrafo.add(new Chunk(linea, FONT_ARTICULO_RESPUESTA));
+                            } else if (linea.startsWith("— ")) {
+                                contenidoParrafo.add(new Chunk(linea, FONT_ARTICULO_DETALLE));
+                            }
+                            else {
+                                contenidoParrafo.add(new Chunk(linea, FONT_ARTICULO_CONTENIDO));
+                            }
+                            contenidoParrafo.add(Chunk.NEWLINE);
+                        }
+                    } else {
+                        contenidoParrafo.add(new Chunk("(No respondido)", FONT_ARTICULO_DETALLE));
+                    }
+                }
+                cell.addElement(contenidoParrafo);
+
+                if (articulo.isRequiereFirma()) {
+                    Paragraph firmaParrafo = new Paragraph("_________________________ (Firma)", FONT_ARTICULO_CONTENIDO);
+                    firmaParrafo.setAlignment(Element.ALIGN_RIGHT);
+                    firmaParrafo.setSpacingBefore(10);
+                    cell.addElement(firmaParrafo);
+                }
+
+                cell.setBorderWidthBottom(0.5f); 
+                cell.setBorderColorBottom(Color.LIGHT_GRAY);
+                cell.setPaddingBottom(10); 
+
+                table.addCell(cell);
+            }
+
+            if (articulos.length % 2 != 0) {
+                PdfPCell emptyCell = new PdfPCell();
+                emptyCell.setBorder(Rectangle.NO_BORDER);
+                emptyCell.setBorderWidthBottom(0.5f);
+                emptyCell.setBorderColorBottom(Color.LIGHT_GRAY);
+                emptyCell.setPadding(5);
+                emptyCell.setPaddingBottom(10);
+                table.addCell(emptyCell);
+            }
+
+            document.add(table);
+
+            // 8. CIERRE
             document.close();
             return baos.toByteArray();
         }
     }
+    
+    /**
+     * Adapta el contenido de la respuesta de un artículo interactivo.
+     * (Corregido para usar los métodos y constantes correctos)
+     */
+    private static String adaptarContenidoRespuesta(
+            ArticuloAnexo articulo,
+            RequerimientoLicitador req,
+            LicitadorData licitadorData,
+            Configuracion configuracion,
+            Map<String, RequerimientoLicitador> respuestasMap) {
 
-    // --- MÉTODOS AUXILIARES PARA LA ESTRUCTURA DEL PDF ---
-    private static PdfPCell createCell(String label, String value, Font labelFont, Font valueFont) {
-        // Celda para la etiqueta (Label)
-        PdfPCell labelCell = new PdfPCell(new Phrase(label, labelFont));
-        labelCell.setBorder(Rectangle.NO_BORDER);
-        labelCell.setPadding(3);
+        StringBuilder contenidoFinal = new StringBuilder();
 
-        // Celda para el valor (Value)
-        PdfPCell valueCell = new PdfPCell(new Phrase(value, valueFont));
-        valueCell.setBorder(Rectangle.BOTTOM);
-        valueCell.setBorderWidthBottom(0.5f);
-        valueCell.setPadding(3);
+        String textoBase = articulo.getContenidoFormato();
+        if (textoBase != null && !textoBase.isEmpty()) {
+            contenidoFinal.append(sustituirTagsManualmente(textoBase, licitadorData, configuracion, respuestasMap));
+            contenidoFinal.append("\n");
+        }
 
-        // Tabla con 2 columnas: Label y Value
-        PdfPTable row = new PdfPTable(new float[]{1.5f, 3.5f});
-        row.setWidthPercentage(100);
-        row.addCell(labelCell);
-        row.addCell(valueCell);
+        if (req.isRespuestaSi()) {
+            contenidoFinal.append("[Respuesta: SÍ");
 
-        // Celda que contiene la fila completa
-        PdfPCell containerCell = new PdfPCell(row);
-        containerCell.setPadding(0);
-        containerCell.setBorder(Rectangle.NO_BORDER);
-        return containerCell;
+            if (ArticuloAnexo.ACCION_PEDIR_FICHERO.equals(articulo.getAccionSi())) {
+                contenidoFinal.append(". Se adjunta el fichero: ");
+                if (req.getRutaFichero() != null && !req.getRutaFichero().isEmpty()) {
+                    contenidoFinal.append(new File(req.getRutaFichero()).getName());
+                } else {
+                    contenidoFinal.append("[Fichero no especificado]");
+                }
+
+            } else if (ArticuloAnexo.ACCION_PEDIR_CAMPOS.equals(articulo.getAccionSi())) {
+                
+                Map<String, String> datosAdicionales = req.getValoresCampos(); 
+                
+                if (datosAdicionales != null && !datosAdicionales.isEmpty()) {
+                    contenidoFinal.append(". Se cumplimentan los siguientes datos adicionales:]\n");
+                    for (Map.Entry<String, String> entry : datosAdicionales.entrySet()) {
+                        contenidoFinal.append("— ").append(entry.getKey()).append(":: ").append(entry.getValue()).append("\n");
+                    }
+                    if (contenidoFinal.length() > 0 && contenidoFinal.charAt(contenidoFinal.length() - 1) == '\n') {
+                        contenidoFinal.setLength(contenidoFinal.length() - 1);
+                    }
+                } else {
+                    contenidoFinal.append(". (No se proporcionaron datos adicionales)]");
+                }
+
+            } else {
+                 contenidoFinal.append(". Se acepta la condición.]");
+            }
+            
+            contenidoFinal.append("\n");
+
+        } else {
+            if (articulo.getContenidoFormatoRespuestaNo() != null && !articulo.getContenidoFormatoRespuestaNo().isEmpty()) {
+                String textoRespuestaNo = sustituirTagsManualmente(articulo.getContenidoFormatoRespuestaNo(), licitadorData, configuracion, respuestasMap);
+                contenidoFinal.append("[Respuesta: NO. ").append(textoRespuestaNo).append("]\n");
+            } else {
+                contenidoFinal.append("[Respuesta: NO]\n");
+            }
+        }
+        
+        return contenidoFinal.toString();
     }
 
-    private static Table createLicitadorTable(LicitadorData data) throws DocumentException {
-        // Uso de Table antigua para formato simple de 2 columnas
-        Table table = new Table(2);
-        table.setWidth(100);
-        table.setPadding(5);
-        table.setSpacing(0);
 
-        table.addCell(createLabeledCell("Razón Social:", data.getRazonSocial()));
-        table.addCell(createLabeledCell("NIF/CIF:", data.getNif()));
-        table.addCell(createLabeledCell("Domicilio:", data.getDomicilio()));
-        table.addCell(createLabeledCell("Email:", data.getEmail()));
-        table.addCell(createLabeledCell("Teléfono:", data.getTelefono()));
-        table.addCell(new Cell("")); // Celda vacía para rellenar
+    /**
+     * Sustituye manualmente los tags por los valores de los modelos.
+     */
+    private static String sustituirTagsManualmente(String contenido, LicitadorData licitadorData, Configuracion configuracion, Map<String, RequerimientoLicitador> respuestasMap) {
+        if (contenido == null) {
+            return "";
+        }
 
-        return table;
-    }
+        contenido = contenido.replace("<DATO_LICITADOR ETQ=\"NIF_CIF\"/>", licitadorData.getNif()); 
+        contenido = contenido.replace("<DATO_LICITADOR ETQ=\"RAZON_SOCIAL\"/>", licitadorData.getRazonSocial());
+        contenido = contenido.replace("<DATO_LICITADOR ETQ=\"NOMBRE_APODERADO\"/>", licitadorData.getNombreApoderado());
+        contenido = contenido.replace("<DATO_LICITADOR ETQ=\"NIF_APODERADO\"/>", licitadorData.getNifApoderado()); 
+        contenido = contenido.replace("<DATO_LICITADOR ETQ=\"DOMICILIO\"/>", licitadorData.getDomicilio());
+        contenido = contenido.replace("<DATO_LICITADOR ETQ=\"CARGO_APODERADO\"/>", licitadorData.getCalidadApoderado());
+        contenido = contenido.replace("<DATO_LICITADOR ETQ=\"TELEFONO\"/>", licitadorData.getTelefono());
+        contenido = contenido.replace("<DATO_LICITADOR ETQ=\"EMAIL\"/>", licitadorData.getEmail());
 
-    private static Cell createLabeledCell(String label, String value) {
-        // Uso de Cell antigua para retrocompatibilidad/simplicidad en este ejemplo
-        Cell cell = new Cell(new Phrase(label + " " + value, FONT_NORMAL));
-        cell.setBorder(Rectangle.BOTTOM);
-        cell.setBorderWidth(0.5f);
-        // LÍNEA ELIMINADA: cell.setPadding(3); // ¡Esta era la línea problemática!
-        return cell;
-    }
+        contenido = contenido.replace("<DATO_CONFIGURACION ETQ=\"NUM_EXPEDIENTE\"/>", configuracion.getNumeroExpediente());
+        contenido = contenido.replace("<DATO_CONFIGURACION ETQ=\"OBJETO_LICITACION\"/>", configuracion.getObjetoLicitacion());
 
-    private static PdfPTable createDeclaracionTable(LicitadorData data) throws DocumentException {
-        PdfPTable table = new PdfPTable(2);
-        table.setWidthPercentage(100);
-        table.setSpacingBefore(10);
-        table.setSpacingAfter(15);
-
-        // 1. Cabecera
-        PdfPCell header1 = new PdfPCell(new Phrase("Declaración", FONT_BOLD));
-        header1.setHorizontalAlignment(Element.ALIGN_CENTER);
-        header1.setBackgroundColor(COLOR_HEADER_BG);
-        table.addCell(header1);
-
-        PdfPCell header2 = new PdfPCell(new Phrase("Respuesta", FONT_BOLD));
-        header2.setHorizontalAlignment(Element.ALIGN_CENTER);
-        header2.setBackgroundColor(COLOR_HEADER_BG);
-        table.addCell(header2);
-
-        // 2. Fila PYME
-        table.addCell(new Phrase("La empresa tiene la condición de PYME.", FONT_NORMAL));
-        table.addCell(new Phrase(data.esPyme() ? "SÍ" : "NO", FONT_NORMAL));
-
-        // 3. Fila Extranjera
-        table.addCell(new Phrase("La empresa es extranjera (no residente en España).", FONT_NORMAL));
-        table.addCell(new Phrase(data.esExtranjera() ? "SÍ" : "NO", FONT_NORMAL));
-
-        return table;
-    }
-
-    private static PdfPTable createLoteTable(Map<Integer, Boolean> participacionPorLote) throws DocumentException {
-        PdfPTable table = new PdfPTable(2);
-        table.setWidthPercentage(50); // Tabla más pequeña
-        table.setSpacingBefore(10);
-        table.setSpacingAfter(15);
-
-        // 1. Cabecera
-        PdfPCell header1 = new PdfPCell(new Phrase("Lote", FONT_BOLD));
-        header1.setHorizontalAlignment(Element.ALIGN_CENTER);
-        header1.setBackgroundColor(COLOR_HEADER_BG);
-        table.addCell(header1);
-
-        PdfPCell header2 = new PdfPCell(new Phrase("Participación", FONT_BOLD));
-        header2.setHorizontalAlignment(Element.ALIGN_CENTER);
-        header2.setBackgroundColor(COLOR_HEADER_BG);
-        table.addCell(header2);
-
-        // 2. Datos
-        participacionPorLote.entrySet().stream()
-                .filter(Map.Entry::getValue) // Solo los lotes marcados como true
-                .sorted(Map.Entry.comparingByKey()) // Ordenar por ID de lote
-                .forEach(entry -> {
-                    table.addCell(new Phrase("Lote " + entry.getKey(), FONT_NORMAL));
-                    table.addCell(new Phrase("SÍ", FONT_NORMAL));
-                });
-
-        return table;
+        return contenido;
     }
 }

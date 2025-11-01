@@ -1,5 +1,6 @@
 package com.licitador.service;
 
+import com.licitador.model.ArticuloAnexo;
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.Arrays;
@@ -57,6 +58,10 @@ public class Configuracion implements Serializable {
      * Lista de los supuestos legales predefinidos de confidencialidad.
      */
     private final String[] supuestosConfidencialidad;
+    // --- CAMPO NUEVO ---
+
+    private final ArticuloAnexo[] articulosAnexos;
+    // -------------------
 
     /**
      * Constructor para inicializar una nueva configuración de licitación.
@@ -76,7 +81,7 @@ public class Configuracion implements Serializable {
     public Configuracion(String objetoLicitacion, String numeroExpediente, boolean tieneLotes, int numLotes,
             String[] nombresArchivosComunes, boolean[] archivosComunesObligatorios,
             boolean[] archivosComunesConfidenciales, // ¡Parámetro añadido!
-            ArchivoOferta[] archivosOferta, String[] supuestosConfidencialidad) {
+            ArchivoOferta[] archivosOferta, String[] supuestosConfidencialidad, ArticuloAnexo[] articulosAnexos) {
         this.objetoLicitacion = Objects.requireNonNull(objetoLicitacion);
         this.numeroExpediente = Objects.requireNonNull(numeroExpediente);
         this.tieneLotes = tieneLotes;
@@ -86,6 +91,12 @@ public class Configuracion implements Serializable {
         this.archivosComunesConfidenciales = Objects.requireNonNull(archivosComunesConfidenciales); // ¡Inicialización añadida!
         this.archivosOferta = Objects.requireNonNull(archivosOferta);
         this.supuestosConfidencialidad = Objects.requireNonNull(supuestosConfidencialidad);
+        this.articulosAnexos = (articulosAnexos != null) ? articulosAnexos : new ArticuloAnexo[0];
+    }
+
+    // --- NUEVO GETTER ---
+    public ArticuloAnexo[] getArticulosAnexos() {
+        return articulosAnexos;
     }
 
     /**

@@ -3,6 +3,7 @@ package com.licitador.jar;
 import com.licitador.model.LicitacionData;
 import com.licitador.model.ArticuloAnexo;
 import com.licitador.jar.model.RequerimientoLicitador;
+import com.licitador.service.Configuracion; // Importar la clase Configuracion
 import java.util.*;
 
 public class LicitadorApp {
@@ -10,7 +11,6 @@ public class LicitadorApp {
     // Simulación de los datos fijos del Licitador (NIF, Razón Social, etc.)
     private static Map<String, String> getDatosSimuladosLicitador() {
         Map<String, String> datos = new HashMap<>();
-        // Estos datos se usan para sustituir tags como <DATO_LICITADOR ETQ="RAZON_SOCIAL"/>
         datos.put("NIF_CIF", "B12345678");
         datos.put("RAZON_SOCIAL", "Empresa Ejemplo S.A.");
         datos.put("CARGO_REPRESENTANTE", "Apoderado Legal");
@@ -21,33 +21,49 @@ public class LicitadorApp {
     private static LicitacionData cargarLicitacionDataSimulado() {
         // En una app real, aquí se usaría ObjectInputStream para leer el LicitacionData.dat
         
-        // Creamos los artículos interactivos y declarativos
+        // --- CONSTRUCTORES CORREGIDOS (10 argumentos) ---
         
         // 1. Artículo Declarativo (orden 1)
-        ArticuloAnexo art1 = new ArticuloAnexo("ART_1_DECLARATIVO", 1, "Artículo Primero: Objeto y Adhesión", 
-            "El licitador <DATO_LICITADOR ETQ=\"RAZON_SOCIAL\"/>, con NIF <DATO_LICITADOR ETQ=\"NIF_CIF\"/>, se adhiere de forma incondicional al objeto del expediente <DATO_LICITADOR ETQ=\"EXPEDIENTE\"/>.", 
-            false, "", ArticuloAnexo.ACCION_NINGUNA, new String[0]);
+        ArticuloAnexo art1 = new ArticuloAnexo(
+            "ART_1_DECLARATIVO", 1, "Artículo Primero: Objeto y Adhesión", 
+            false, "", // esInteractivo=false, pregunta=""
+            "El licitador <DATO_LICITADOR ETQ=\"RAZON_SOCIAL\"/>, con NIF <DATO_LICITADOR ETQ=\"NIF_CIF\"/>, se adhiere de forma incondicional al objeto del expediente <DATO_LICITADOR ETQ=\"EXPEDIENTE\"/>.", // contenidoFormato (SÍ)
+            "", // contenidoFormatoRespuestaNo (vacío, no aplica)
+            ArticuloAnexo.ACCION_NINGUNA, new String[0], false // accionSi, etiquetas, requiereFirma
+        );
         
         // 2. Artículo Interactivo: Pide Campos (orden 3)
-        ArticuloAnexo art2 = new ArticuloAnexo("ART_2_SOLVENCIA", 3, "Artículo Segundo: Declaración de Solvencia", 
-            "La presente declaración sustituye la documentación de Solvencia. [Aquí se insertará la declaración detallada].", 
-            true, "¿Certifica que cumple con el requisito de Solvencia Técnica?", 
-            ArticuloAnexo.ACCION_PEDIR_CAMPOS, new String[]{"Ingresos Anuales (2024)", "Personal Medio"});
+        ArticuloAnexo art2 = new ArticuloAnexo(
+            "ART_2_SOLVENCIA", 3, "Artículo Segundo: Declaración de Solvencia", 
+            true, "¿Certifica que cumple con el requisito de Solvencia Técnica?", // esInteractivo=true, pregunta
+            "La presente declaración sustituye la documentación de Solvencia.", // contenidoFormato (SÍ)
+            "DECLARA NO CUMPLIR con el requisito de Solvencia Técnica.", // contenidoFormatoRespuestaNo (NO)
+            ArticuloAnexo.ACCION_PEDIR_CAMPOS, new String[]{"Ingresos Anuales (2024)", "Personal Medio"}, true // accionSi, etiquetas, requiereFirma
+        );
             
         // 3. Artículo Interactivo: Pide Fichero (orden 2)
-        ArticuloAnexo art3 = new ArticuloAnexo("ART_3_CERTIF", 2, "Artículo Tercero: Certificaciones Opcionales", 
-            "La empresa declara contar con la certificación ISO 9001.", 
-            true, "¿Aporta la Certificación ISO 9001?", // 'true' es si requiere firma, no la interactividad
-            ArticuloAnexo.ACCION_PEDIR_FICHERO, new String[0]);
+        ArticuloAnexo art3 = new ArticuloAnexo(
+            "ART_3_CERTIF", 2, "Artículo Tercero: Certificaciones Opcionales", 
+            true, "¿Aporta la Certificación ISO 9001?", // esInteractivo=true, pregunta
+            "La empresa declara contar con la certificación ISO 9001.", // contenidoFormato (SÍ)
+            "La empresa NO aporta la Certificación ISO 9001.", // contenidoFormatoRespuestaNo (NO)
+            ArticuloAnexo.ACCION_PEDIR_FICHERO, new String[0], true // accionSi, etiquetas, requiereFirma
+        );
             
-        // 4. Artículo Interactivo: NO cumple (orden 4) -> No debería aparecer en el final
-        ArticuloAnexo art4 = new ArticuloAnexo("ART_4_OTRO", 4, "Artículo Cuarto: Requisito Adicional", 
-            "Cumple con el requisito adicional de la cláusula 7.2.", 
-            false, "¿Acepta las condiciones del Anexo Z?", 
-            ArticuloAnexo.ACCION_PEDIR_FICHERO, new String[0]);
+        // 4. Artículo Interactivo: NO cumple (orden 4)
+        ArticuloAnexo art4 = new ArticuloAnexo(
+            "ART_4_OTRO", 4, "Artículo Cuarto: Requisito Adicional", 
+            true, "¿Acepta las condiciones del Anexo Z?", // esInteractivo=true, pregunta
+            "Cumple con el requisito adicional de la cláusula 7.2.", // contenidoFormato (SÍ)
+            "NO ACEPTA las condiciones del Anexo Z.", // contenidoFormatoRespuestaNo (NO)
+            ArticuloAnexo.ACCION_NINGUNA, new String[0], false // accionSi, etiquetas, requiereFirma
+        );
             
-        // Creamos LicitacionData. Nota: Asumo que tienes los setters o constructor para Expediente/Objeto
-        LicitacionData data = new LicitacionData("EXP-2025-001", "Suministro de Materiales de Oficina", false, 1, new com.licitador.model.ArchivoRequerido[0], new com.licitador.model.ArchivoRequerido[0], new ArticuloAnexo[]{art1, art3, art2, art4});
+        // Creamos LicitacionData (el objeto serializado)
+        LicitacionData data = new LicitacionData("EXP-2025-001", "Suministro de Materiales de Oficina", false, 1, 
+            new com.licitador.model.ArchivoRequerido[0], 
+            new com.licitador.model.ArchivoRequerido[0], 
+            new ArticuloAnexo[]{art1, art3, art2, art4});
         
         return data;
     }
@@ -56,18 +72,32 @@ public class LicitadorApp {
         System.out.println("--- 🚀 INICIO: PROCESO DE LICITACIÓN ---");
         
         // 1. CARGAR DATOS Y CREAR GENERADOR
+        
+        // 1a. Simulamos la carga del objeto LicitacionData (como si viniera del config.dat)
         LicitacionData licitacionData = cargarLicitacionDataSimulado();
         Map<String, String> datosLicitador = getDatosSimuladosLicitador();
         
-        // Instanciamos el AnexoGenerator
-        AnexoGenerator generator = new AnexoGenerator(licitacionData, datosLicitador);
+        // 1b. Simulamos la conversión que hace MainWindow: LicitacionData -> Configuracion
+        Configuracion configuracionSimulada = new Configuracion(
+            licitacionData.getObjeto(),
+            licitacionData.getExpediente(),
+            licitacionData.tieneLotes(),
+            licitacionData.getNumLotes(),
+            new String[0], // Archivos comunes (irrelevantes para esta prueba)
+            new boolean[0], // ...
+            new boolean[0], // ...
+            new Configuracion.ArchivoOferta[0], // ...
+            new String[0], // Supuestos (irrelevantes)
+            licitacionData.getArticulosAnexos() // ¡El dato importante!
+        );
+        
+        // 1c. Instanciamos el AnexoGenerator (Ahora SÍ pasamos Configuracion)
+        AnexoGenerator generator = new AnexoGenerator(configuracionSimulada, datosLicitador);
 
         // 2. FASE DE INTERACCIÓN (Simulación de la GUI)
-        // Obtenemos una lista de todos los Requerimientos que deben ser contestados
         List<RequerimientoLicitador> reqs = generator.obtenerRequerimientosInteractivos();
         System.out.println("\n--- FASE INTERACTIVA: " + reqs.size() + " Requerimientos encontrados ---");
         
-        // Iteramos sobre los requerimientos y SIMULAMOS la respuesta del usuario
         List<RequerimientoLicitador> respuestasLicitador = new ArrayList<>();
         
         for (RequerimientoLicitador req : reqs) {
@@ -99,7 +129,6 @@ public class LicitadorApp {
         }
 
         // 3. GENERACIÓN DEL ANEXO FINAL
-        // Pasamos las respuestas ya cumplimentadas al generador
         generator.setRespuestasFinales(respuestasLicitador);
         String anexoFinal = generator.generarContenidoFinal();
         

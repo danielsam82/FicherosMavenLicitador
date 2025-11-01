@@ -410,6 +410,7 @@ public class ConfiguradorApp extends JFrame {
         return rowPanel;
     }
 
+// En: com.licitador.configurator.ConfiguradorApp.java
     /**
      * Controlador del evento al hacer clic en el botón "GENERAR". Recolecta los
      * datos de la interfaz, crea un objeto {@code LicitacionData} y llama al
@@ -426,12 +427,11 @@ public class ConfiguradorApp extends JFrame {
             return;
         }
 
-        // 1. RECOLECCIÓN DE DATOS (Incluyendo Anexos)
+        // 1. RECOLECCIÓN DE DATOS (Archivos Comunes)
         List<ArchivoRequerido> archivosComunesList = new ArrayList<>();
         for (Component c : pnlArchivosComunes.getComponents()) {
             if (c instanceof JPanel) {
                 JPanel panel = (JPanel) c;
-                // Asumiendo que el orden es: 0=JLabel("Nombre:"), 1=JTextField, 2=JCheckBox(Obligatorio), 3=JCheckBox(Confidencial)
                 JTextField txtNombre = (JTextField) panel.getComponent(1);
                 JCheckBox chkObligatorio = (JCheckBox) panel.getComponent(2);
                 JCheckBox chkConfidencial = (JCheckBox) panel.getComponent(3);
@@ -447,6 +447,7 @@ public class ConfiguradorApp extends JFrame {
             }
         }
 
+        // 1. RECOLECCIÓN DE DATOS (Documentos de Oferta)
         List<ArchivoRequerido> documentosOfertaList = new ArrayList<>();
         for (Component c : pnlDocumentos.getComponents()) {
             if (c instanceof JPanel) {
@@ -466,6 +467,10 @@ public class ConfiguradorApp extends JFrame {
             }
         }
 
+        // 1. RECOLECCIÓN DE DATOS (Artículos de Anexo)
+        // (Usamos la variable 'anexosSeleccionados' que definimos en ConfiguradorApp)
+        ArticuloAnexo[] anexosArray = anexosSeleccionados.toArray(new ArticuloAnexo[0]);
+
         // Crear objeto de datos LicitacionData
         int numLotes = rbSiLotes.isSelected() ? (Integer) spnNumLotes.getValue() : 0;
 
@@ -477,13 +482,14 @@ public class ConfiguradorApp extends JFrame {
                 numLotes,
                 archivosComunesList.toArray(new ArchivoRequerido[0]),
                 documentosOfertaList.toArray(new ArchivoRequerido[0]),
-                anexosSeleccionados.toArray(new ArticuloAnexo[0]) // Se añade la lista de anexos
+                anexosArray // Se añade la lista de anexos
         );
 
         logger.logInfo("Datos de licitación recolectados correctamente.");
         logger.logInfo("Expediente: " + datos.getExpediente());
+        // CORRECCIÓN: Usamos el getter de LicitacionData, no de Configuracion
         logger.logInfo("Lotes: " + (datos.tieneLotes() ? datos.getNumLotes() : "No"));
-        logger.logInfo("Anexos administrativos seleccionados: " + anexosSeleccionados.size());
+        logger.logInfo("Anexos administrativos seleccionados: " + datos.getArticulosAnexos().length); // Corregido para leer desde 'datos'
 
         // 2. GENERAR JAR
         try {
@@ -498,7 +504,10 @@ public class ConfiguradorApp extends JFrame {
 
             logger.logInfo("Ruta de destino seleccionada: " + jarPath);
 
+            // CORRECCIÓN: El constructor de JarExporter SÍ acepta LicitacionData
             JarExporter exporter = new JarExporter(datos, jarPath, logTxt);
+
+            // CORRECCIÓN: El método se llama exportJar()
             exporter.exportJar();
 
             JOptionPane.showMessageDialog(this, "El archivo JAR de licitación se ha creado con éxito en: " + jarPath, "Éxito", JOptionPane.INFORMATION_MESSAGE);

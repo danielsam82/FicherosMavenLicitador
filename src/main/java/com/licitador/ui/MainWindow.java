@@ -8,6 +8,10 @@ import com.licitador.service.FileData;
 import com.licitador.service.FileManager;
 import com.licitador.service.Logger;
 import com.licitador.service.TextAreaLogger;
+import com.licitador.jar.AnexoGenerator;
+import com.licitador.jar.model.RequerimientoLicitador;
+import com.licitador.model.ArticuloAnexo;
+// ...
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -38,9 +42,13 @@ import javax.swing.event.TableModelEvent;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
+/**
+ * Clase principal de la interfaz gráfica (GUI) para la herramienta de
+ * preparación de documentación de licitaciones.
+ */
 public class MainWindow extends JFrame {
 
-    // Componentes UI
+    // --- Componentes UI (Botones, Tablas, Log) ---
     private JButton cargarArchivosComunesButton;
     private JButton cargarOfertasButton;
     private JButton comprimirButton;
@@ -50,7 +58,7 @@ public class MainWindow extends JFrame {
     private JButton salirButton;
     private JButton resetButton;
     private JButton editarLicitadorButton;
-    private JButton verDetallesOfertaButton; // Nuevo botón
+    private JButton verDetallesOfertaButton;
     private JTextArea logArea;
     private JTable archivosComunesTable;
     private JTable lotesTable;
@@ -58,27 +66,32 @@ public class MainWindow extends JFrame {
     private JLabel ofertasLabel;
     private JProgressBar progressBar;
 
-    // --- NUEVOS CAMPOS DE LA UI PARA LICITADOR DATA ---
+    // --- Componentes UI para Datos del Licitador ---
     private JTextField razonSocialField;
     private JTextField nifField;
     private JTextField domicilioField;
     private JTextField emailField;
     private JTextField telefonoField;
-    // --------------------------------------------------
-    // ¡AQUÍ VAN LAS NUEVAS DECLARACIONES! ✅
-    // --- ¡AÑADE ESTO! DECLARACIÓN DE RADIO BUTTONS Y GRUPOS (NUEVOS CAMPOS) ✅ ---
+
     private JRadioButton pymeSiRadio;
     private JRadioButton pymeNoRadio;
     private JRadioButton extranjeraSiRadio;
     private JRadioButton extranjeraNoRadio;
-
     private ButtonGroup pymeGroup;
     private ButtonGroup extranjeraGroup;
-    // --------------------------------------------------
-    // Gestores y datos
+
+    // --- NUEVA FUNCIONALIDAD: Botón Anexo Administrativo ---
+    private JButton generarAnexoButton;
+
+    // --- Gestores y Datos ---
     private FileManager fileManager;
     private Configuracion configuracion;
     private Logger logger;
+
+    // --- Constantes de Tabla (basadas en tu código anterior) ---
+    // Índices del MODELO de la tabla de lotes: {"Lote", "Archivos", "Estado", "Participa"}
+    private static final int COLUMNA_ID_LOTE = 0;
+    private static final int COLUMNA_PARTICIPA = 3;
 
     public MainWindow() {
         // La inicialización de componentes incluye la creación de los nuevos JTextField
@@ -260,7 +273,6 @@ public class MainWindow extends JFrame {
         cargarDatosLicitadorUI();
     }
 
-    // Añadir este método a MainWindow.java
     /**
      * Transfiere los datos de LicitadorData y el modelo de lotes desde el
      * diálogo temporal a los componentes de la MainWindow y actualiza el modelo
@@ -352,6 +364,8 @@ public class MainWindow extends JFrame {
 
     }
 
+// En MainWindow.java
+// REEMPLAZA este método completo
     private Configuracion cargarConfiguracionDesdeJar() {
         try (InputStream is = getClass().getResourceAsStream("/config.dat"); ObjectInputStream ois = new ObjectInputStream(is)) {
 
@@ -378,6 +392,11 @@ public class MainWindow extends JFrame {
             }
             // --- FIN EXTRACCIÓN DE CONFIDENCIALIDAD ---
 
+            // --- 🔥 CORRECCIÓN 1: Extraer los Artículos Anexos ---
+            // (Esta es la línea que faltaba)
+            com.licitador.model.ArticuloAnexo[] articulosAnexos = datos.getArticulosAnexos();
+            // ----------------------------------------------------
+
             return new Configuracion(
                     datos.getObjeto(),
                     datos.getExpediente(),
@@ -391,7 +410,8 @@ public class MainWindow extends JFrame {
                         "Contiene información comercial sensible",
                         "Incluye secretos comerciales",
                         "Contiene secretos industriales"
-                    }
+                    },
+                    articulosAnexos // <-- El parámetro que añadiste
             );
         } catch (Exception e) {
             logger.logError("Error al cargar configuración: " + e.getMessage());
@@ -431,6 +451,7 @@ public class MainWindow extends JFrame {
         });
     }
 
+// En MainWindow.java
     private void inicializarComponentes() {
         logArea = new JTextArea();
         logArea.setEditable(false);
@@ -450,7 +471,7 @@ public class MainWindow extends JFrame {
         domicilioField = new JTextField(30);
         emailField = new JTextField(20);
         telefonoField = new JTextField(15);
-        // --------------------------------------------
+
         // Inicialización del grupo PYME
         pymeSiRadio = new JRadioButton("Sí");
         pymeNoRadio = new JRadioButton("No");
@@ -464,24 +485,27 @@ public class MainWindow extends JFrame {
         extranjeraGroup = new ButtonGroup();
         extranjeraGroup.add(extranjeraSiRadio);
         extranjeraGroup.add(extranjeraNoRadio);
-        // --------------------------------------------
+
         //Botón edición licitador
         editarLicitadorButton = new JButton("Datos básicos participación");
 
+        // 🔥 INTEGRACIÓN: Inicializar el botón de generar anexo
+        generarAnexoButton = new JButton("Generar/Actualizar Anexo Admin.");
+
+        // --- TABLA DE ARCHIVOS COMUNES (Sin cambios) ---
         archivosComunesTable = new JTable(new DefaultTableModel(new Object[]{"Nombre", "Obligatorio", "Estado", "Confidencial"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
 
-            // Recomendación: asegurar que el renderizado de texto funcione.
             @Override
             public Class<?> getColumnClass(int columnIndex) {
                 return String.class;
             }
         });
 
-        // 🔥 INICIALIZACIÓN DE LOTESTABLE CON CORRECCIÓN CLAVE 🔥
+        // --- TABLA DE LOTES (Respetando tu lógica Boolean.class) ---
         lotesTable = new JTable(new DefaultTableModel(new Object[]{"Lote", "Archivos Cargados", "Estado", "Participa"}, 0) {
 
             @Override
@@ -490,24 +514,20 @@ public class MainWindow extends JFrame {
                 return column == 3;
             }
 
-            // Sobrescribimos getColumnClass para decirle a Swing el tipo de cada columna
             @Override
             public Class<?> getColumnClass(int columnIndex) {
                 if (columnIndex == 3) { // Índice 3 es la columna "Participa"
-                    return Boolean.class;  // Para que use JCheckBox
+                    return Boolean.class;  // <-- MANTENEMOS TU LÓGICA (usará JCheckBox)
                 }
-                // ¡CORRECCIÓN! Usamos String.class para el resto.
                 return String.class;
             }
         });
 
         verDetallesOfertaButton = new JButton("Mostrar detalles");
-        verDetallesOfertaButton.setEnabled(false); // Deshabilitado por defecto
+        verDetallesOfertaButton.setEnabled(false);
 
         numLotesLabel = new JLabel();
         ofertasLabel = new JLabel();
-
-        // El método de configuración de tablas se llama al final de completarInicializacionComponentes
     }
 
     private void inicializarDatosConfiguracion() {
@@ -553,7 +573,9 @@ public class MainWindow extends JFrame {
                 archivosComunesObligatorios,
                 archivosComunesConfidenciales, // <-- ¡Este es el argumento que faltaba!
                 archivosOferta,
-                supuestosConfidencialidad
+                supuestosConfidencialidad,
+                // --- 🔥 CORRECCIÓN 2: Añadir array vacío ---
+                new com.licitador.model.ArticuloAnexo[0]
         );
     }
 
@@ -611,7 +633,7 @@ public class MainWindow extends JFrame {
         // -----------------------------------------------------------------------------
     }
 
-// --- MÉTODO PARA DATOS DEL LICITADOR FINALIZADO CON BOTÓN DE EDICIÓN ---
+// --- MÉTODO PARA DATOS DEL LICITADOR FINALIZADO CON BOTÓN DE EDICIÓN Y GENERACIÓN ---
     private JPanel crearPanelDatosLicitador() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBorder(BorderFactory.createTitledBorder("Datos del Licitador y Clasificación"));
@@ -699,7 +721,7 @@ public class MainWindow extends JFrame {
         panel.add(clasificacionPanel, gbc);
 
         // ----------------------------------------------------------------------------------
-        // 🔥 NUEVA FILA 4: BOTÓN DE EDICIÓN
+        // 🔥 FILA 4: BOTONES DE ACCIÓN (Generar Anexo y Editar Licitador)
         // ----------------------------------------------------------------------------------
         gbc.gridy = 4;
         gbc.gridx = 0;
@@ -709,11 +731,13 @@ public class MainWindow extends JFrame {
         gbc.fill = GridBagConstraints.NONE; // No estirar horizontalmente
 
         JPanel botonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        // Se asume que 'generarAnexoButton' fue inicializado en 'inicializarComponentes'
+        botonPanel.add(generarAnexoButton);
         botonPanel.add(editarLicitadorButton);
 
         panel.add(botonPanel, gbc);
 
-        // Restaurar GBC para futuras filas si las hubiera (aunque parece ser la última)
+        // Restaurar GBC para futuras filas
         gbc.gridwidth = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
@@ -1075,6 +1099,53 @@ public class MainWindow extends JFrame {
         return lotesSeleccionados;
     }
 
+    // En MainWindow.java
+    /**
+     * Lee el estado actual de la JTable 'lotesTable' (columna "Participa") y
+     * sincroniza esa selección con el FileManager.
+     */
+    private void actualizarParticipacionLotesDesdeTabla() {
+        if (!configuracion.isTieneLotes() || lotesTable == null) {
+            return; // No hay lotes que sincronizar
+        }
+
+        Set<String> lotesSeleccionadosIds = new HashSet<>();
+        DefaultTableModel model = (DefaultTableModel) lotesTable.getModel();
+        int numFilas = model.getRowCount();
+
+        // Índices de columna del MODELO (basado en tu código anterior)
+        final int LOTE_NAME_MODEL_INDEX = 0;
+        final int PARTICIPA_MODEL_INDEX = 3;
+
+        for (int i = 0; i < numFilas; i++) {
+            // Obtener el valor de la columna 'Participa'
+            Object participaValue = model.getValueAt(i, PARTICIPA_MODEL_INDEX);
+
+            boolean participa = false;
+            if (participaValue instanceof Boolean) {
+                participa = (Boolean) participaValue;
+            } else if (participaValue != null) {
+                // Si usas String "Sí"/"No" en la tabla (como en ConfiguracionInicialDialog)
+                participa = participaValue.toString().equalsIgnoreCase("Sí");
+            }
+
+            if (participa) {
+                try {
+                    String nombreLote = (String) model.getValueAt(i, LOTE_NAME_MODEL_INDEX);
+                    // Extraer el ID (ej: "1" de "Lote 1")
+                    String loteId = nombreLote.substring("Lote ".length()).trim();
+                    lotesSeleccionadosIds.add(loteId);
+                } catch (Exception e) {
+                    logger.logError("Error al parsear ID de lote en la tabla: " + model.getValueAt(i, LOTE_NAME_MODEL_INDEX));
+                }
+            }
+        }
+
+        // Enviar el conjunto de IDs seleccionados al FileManager
+        fileManager.setParticipacionDesdeUI(lotesSeleccionadosIds);
+        logger.log("Sincronización de participación desde la JTable completada.");
+    }
+
     // MÉTODO AUXILIAR REQUERIDO DENTRO DE MAINWINDOW
     /**
      * [TEMPORAL]: Convierte el Set<String> de IDs de lote (ej: {"1", "3"}) en
@@ -1340,6 +1411,313 @@ public class MainWindow extends JFrame {
                 }
             });
         }
+
+// En MainWindow.java, dentro de private void configurarEventos()
+        // --- INICIO: LÓGICA DEL ANEXO ADMINISTRATIVO (NUEVO FLUJO) ---
+        generarAnexoButton.addActionListener(e -> {
+            logger.logInfo("Iniciando nuevo flujo de Anexo Administrativo...");
+
+            // 1. Validaciones Previas (Datos Empresa y Lotes)
+            if (!validarDatosLicitador()) {
+                logger.logError("Generación de Anexo cancelada: Faltan datos obligatorios de la EMPRESA.");
+                return;
+            }
+            actualizarParticipacionLotesDesdeTabla();
+
+            LicitadorData datosLicitador = fileManager.getLicitadorData();
+
+            // 2. Validación/Recogida de datos del Apoderado
+            if (datosLicitador.getNombreApoderado() == null || datosLicitador.getNombreApoderado().trim().isEmpty()) {
+                logger.logInfo("Solicitando datos del Apoderado...");
+                ApoderadoDialog apoderadoDialog = new ApoderadoDialog(this, datosLicitador);
+                apoderadoDialog.setVisible(true);
+
+                if (!apoderadoDialog.isAceptado()) {
+                    logger.logError("El usuario canceló la introducción de datos del Apoderado.");
+                    return;
+                }
+            }
+
+            // 3. Preparar el Generador (con datos completos)
+            AnexoGenerator generator = new AnexoGenerator(
+                    configuracion,
+                    datosLicitador.getLicitadorDataAsMap() // Este Map ahora incluye al apoderado
+            );
+
+            // 4. PASO 1: ADVERTENCIA INICIAL (Tu solicitud)
+            String mensajeAdvertencia = "Deberá usted aceptar todas las condiciones previas de participación publicadas junto al anuncio de licitación en la Plataforma de contratación del estado, así como el contenido del Anexo Global de Adhesión que se presentará a continuación.";
+
+            JTextArea messageArea = new JTextArea(mensajeAdvertencia);
+            messageArea.setWrapStyleWord(true);
+            messageArea.setLineWrap(true);
+            messageArea.setEditable(false);
+            messageArea.setOpaque(false);
+            messageArea.setFont(UIManager.getFont("Label.font"));
+            JScrollPane scrollPaneAdvertencia = new JScrollPane(messageArea);
+            scrollPaneAdvertencia.setPreferredSize(new Dimension(500, 100));
+            scrollPaneAdvertencia.setBorder(null);
+
+            int advertenciaResult = JOptionPane.showConfirmDialog(this,
+                    scrollPaneAdvertencia,
+                    "Advertencia Importante",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.INFORMATION_MESSAGE);
+
+            if (advertenciaResult != JOptionPane.OK_OPTION) {
+                logger.logInfo("Proceso cancelado por el licitador (Paso 1: Advertencia).");
+                return;
+            }
+
+            // 5. PASO 2: RESUMEN INICIAL DE TÍTULOS (Tu solicitud)
+            // (Cabecera + Títulos de Artículos)
+            String cabeceraLicitador = String.format(
+                    "Don/Doña %s, con NIF %s, actuando en calidad de %s de la empresa:\n"
+                    + "%s (NIF: %s)\n"
+                    + "Con domicilio en %s, teléfono %s y email %s,\n"
+                    + "DECLARA RESPONSABLEMENTE LO SIGUIENTE:",
+                    datosLicitador.getNombreApoderado(),
+                    datosLicitador.getNifApoderado(),
+                    datosLicitador.getCalidadApoderado(),
+                    datosLicitador.getRazonSocial(),
+                    datosLicitador.getNif(),
+                    datosLicitador.getDomicilio(),
+                    datosLicitador.getTelefono(),
+                    datosLicitador.getEmail()
+            );
+
+            ArticuloAnexo[] todosArticulos = configuracion.getArticulosAnexos();
+            Arrays.sort(todosArticulos, (a1, a2) -> Integer.compare(a1.getOrden(), a2.getOrden()));
+
+            StringBuilder resumenTitulos = new StringBuilder("Artículos a declarar:\n\n");
+            for (ArticuloAnexo art : todosArticulos) {
+                resumenTitulos.append(String.format("  • (%d) %s\n", art.getOrden(), art.getTitulo()));
+            }
+
+            JTextArea titulosArea = new JTextArea(cabeceraLicitador + "\n\n" + resumenTitulos.toString());
+            titulosArea.setWrapStyleWord(true);
+            titulosArea.setLineWrap(true);
+            titulosArea.setEditable(false);
+            titulosArea.setOpaque(false);
+            titulosArea.setFont(UIManager.getFont("Label.font"));
+
+            JScrollPane scrollPaneTitulos = new JScrollPane(titulosArea);
+            scrollPaneTitulos.setPreferredSize(new Dimension(600, 300));
+            scrollPaneTitulos.setBorder(null);
+
+            int titulosResult = JOptionPane.showConfirmDialog(this,
+                    scrollPaneTitulos,
+                    "Resumen de Artículos del Anexo Global",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE);
+
+            if (titulosResult != JOptionPane.OK_OPTION) {
+                logger.logInfo("Proceso cancelado por el licitador (Paso 2: Resumen Títulos).");
+                return;
+            }
+
+            // 6. PASO 3: FLUJO DE PREGUNTAS INTERACTIVAS (El asistente que ya teníamos)
+            List<RequerimientoLicitador> reqs = generator.obtenerRequerimientosInteractivos();
+
+            if (!ejecutarAsistenteInteractivo(reqs)) { // 'ejecutarAsistenteInteractivo' es el método que mejoramos
+                logger.logInfo("Proceso cancelado por el licitador (Paso 3: Asistente Interactivo).");
+                return;
+            }
+
+            // 7. PASO 4: RESUMEN FINAL DETALLADO (Tu solicitud)
+            generator.setRespuestasFinales(reqs);
+            String contenidoAnexoFinal = generator.generarContenidoFinal();
+
+            // Usamos el método de diálogo de lectura que ya teníamos, pero con el contenido final
+            boolean aceptadoFinal = mostrarDialogoLectura(contenidoAnexoFinal, "Revisión Final y Aceptación del Anexo");
+
+            if (!aceptadoFinal) {
+                logger.logInfo("Proceso cancelado por el licitador (Paso 4: Aceptación Final).");
+                return;
+            }
+
+            // 8. PASO 5: GENERACIÓN DEL PDF
+            boolean exito = fileManager.generarAnexoAdministrativoYGuardar(reqs);
+
+            if (exito) {
+                JOptionPane.showMessageDialog(this,
+                        "Anexo Administrativo (PDF) generado y guardado en la sesión.",
+                        "Éxito",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                actualizarTablaArchivosComunes();
+                comprimirButton.setEnabled(fileManager.validarOfertaCompleta());
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Error al generar el Anexo Administrativo. Revise los logs.",
+                        "Error de Generación",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        // --- FIN: LÓGICA DEL ANEXO ADMINISTRATIVO ---
+    }
+
+    /**
+     * Muestra un diálogo modal para la lectura y aceptación final del Anexo.
+     *
+     * @param contenidoHTML El HTML del anexo (Declarativo o Final).
+     * @param tituloVentana El título de la ventana.
+     * @return true si el usuario marca "Acepto" y pulsa "Continuar/Aceptar".
+     */
+    private boolean mostrarDialogoLectura(String contenidoHTML, String tituloVentana) {
+        JTextPane textPane = new JTextPane();
+        textPane.setContentType("text/html");
+        textPane.setText(contenidoHTML);
+        textPane.setEditable(false);
+        textPane.setCaretPosition(0);
+
+        JScrollPane scrollPane = new JScrollPane(textPane);
+        scrollPane.setPreferredSize(new Dimension(700, 450));
+
+        JCheckBox chkAceptar = new JCheckBox("Declaro bajo mi responsabilidad que he leído y acepto el contenido íntegro de este anexo.");
+
+        JPanel panelDialogo = new JPanel(new BorderLayout(10, 10));
+        panelDialogo.add(scrollPane, BorderLayout.CENTER);
+        panelDialogo.add(chkAceptar, BorderLayout.SOUTH);
+
+        int opcion = JOptionPane.showOptionDialog(
+                this,
+                panelDialogo,
+                tituloVentana,
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                new String[]{"Aceptar y Continuar", "Cancelar"}, // Botones
+                "Aceptar y Continuar"
+        );
+
+        if (opcion == JOptionPane.OK_OPTION) {
+            if (!chkAceptar.isSelected()) {
+                JOptionPane.showMessageDialog(this, "Debe marcar la casilla de aceptación para continuar.", "Aceptación Requerida", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            return true;
+        }
+        return false; // Si cancela o cierra
+    }
+
+    /**
+     * Muestra un pop-up secuencial para cada artículo interactivo. Modifica la
+     * lista 'requerimientos' con las respuestas del licitador. (Versión
+     * mejorada con JTextArea para ajuste de línea en preguntas largas).
+     *
+     * @param requerimientos La lista de tareas a cumplimentar.
+     * @return true si el usuario completa el asistente, false si cancela en
+     * algún punto.
+     */
+    private boolean ejecutarAsistenteInteractivo(List<RequerimientoLicitador> requerimientos) {
+        if (requerimientos == null || requerimientos.isEmpty()) {
+            return true; // No hay nada interactivo que hacer
+        }
+
+        for (RequerimientoLicitador req : requerimientos) {
+
+            // --- INICIO DE LA MEJORA VISUAL ---
+            // 1. Crear un componente de mensaje que respete los saltos de línea
+            JTextArea messageArea = new JTextArea(req.getPregunta());
+            messageArea.setWrapStyleWord(true);
+            messageArea.setLineWrap(true);
+            messageArea.setEditable(false);
+            messageArea.setFocusable(false); // Evitar que el JTextArea tome el foco
+            messageArea.setOpaque(false); // Quitar el fondo blanco (toma el del panel)
+            messageArea.setFont(UIManager.getFont("Label.font")); // Usar la fuente estándar de Swing
+
+            // Damos un tamaño preferido para que el texto se ajuste
+            JScrollPane scrollPane = new JScrollPane(messageArea);
+            scrollPane.setPreferredSize(new Dimension(450, 150));
+            scrollPane.setBorder(null); // Quitar el borde del scrollpane
+            // --- FIN DE LA MEJORA VISUAL ---
+
+            // 2. PASO 1: LA PREGUNTA (SÍ/NO)
+            int respuesta = JOptionPane.showConfirmDialog(
+                    this,
+                    scrollPane, // Pasamos el JScrollPane en lugar del String
+                    req.getTituloArticulo(),
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE
+            );
+
+            if (respuesta == JOptionPane.YES_OPTION) {
+                req.setRespuestaSi(true);
+
+                // PASO 2: LA ACCIÓN (SI DIJO "SÍ")
+                if (ArticuloAnexo.ACCION_PEDIR_FICHERO.equals(req.getAccionSi())) {
+                    // --- Pedir Fichero ---
+                    JFileChooser fc = new JFileChooser();
+                    fc.setDialogTitle("Adjuntar Fichero para: " + req.getTituloArticulo());
+                    int fcResult = fc.showOpenDialog(this);
+
+                    if (fcResult == JFileChooser.APPROVE_OPTION) {
+                        File file = fc.getSelectedFile();
+                        req.setRutaFichero(file.getAbsolutePath());
+                        logger.logInfo("Fichero adjuntado para " + req.getIdArticulo() + ": " + file.getName());
+                    } else {
+                        logger.logError("El usuario respondió SÍ pero canceló la subida del fichero. Proceso cancelado.");
+                        return false; // Cancelar todo el asistente
+                    }
+
+                } else if (ArticuloAnexo.ACCION_PEDIR_CAMPOS.equals(req.getAccionSi())) {
+                    // --- Pedir Campos (Máx 4) ---
+                    Map<String, String> valores = new HashMap<>();
+                    boolean camposCompletados = false;
+
+                    // Creamos un panel dinámico para los campos
+                    JPanel fieldsPanel = new JPanel(new GridLayout(0, 2, 5, 5));
+                    JTextField[] textFields = new JTextField[req.getEtiquetasCampos().length];
+
+                    for (int i = 0; i < req.getEtiquetasCampos().length; i++) {
+                        fieldsPanel.add(new JLabel(req.getEtiquetasCampos()[i] + ":"));
+                        textFields[i] = new JTextField(25);
+                        fieldsPanel.add(textFields[i]);
+                    }
+
+                    while (!camposCompletados) {
+                        int fieldResult = JOptionPane.showConfirmDialog(
+                                this,
+                                fieldsPanel,
+                                "Cumplimentar Datos para: " + req.getTituloArticulo(),
+                                JOptionPane.OK_CANCEL_OPTION,
+                                JOptionPane.PLAIN_MESSAGE
+                        );
+
+                        if (fieldResult != JOptionPane.OK_OPTION) {
+                            logger.logError("El usuario respondió SÍ pero canceló la cumplimentación de campos. Proceso cancelado.");
+                            return false; // Cancelar todo el asistente
+                        }
+
+                        // Validar que los campos no estén vacíos
+                        boolean validos = true;
+                        valores.clear();
+                        for (int i = 0; i < req.getEtiquetasCampos().length; i++) {
+                            String valor = textFields[i].getText().trim();
+                            if (valor.isEmpty()) {
+                                validos = false;
+                            }
+                            valores.put(req.getEtiquetasCampos()[i], valor);
+                        }
+
+                        if (validos) {
+                            req.setValoresCampos(valores);
+                            camposCompletados = true;
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Debe rellenar todos los campos solicitados.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                }
+
+            } else if (respuesta == JOptionPane.NO_OPTION) {
+                req.setRespuestaSi(false);
+            } else {
+                // El usuario cerró el diálogo (JOptionPane.CLOSED_OPTION)
+                return false; // Cancelar todo el asistente
+            }
+        }
+
+        return true; // Asistente completado
     }
 
     private void setBotonesEnabled(boolean enabled) {

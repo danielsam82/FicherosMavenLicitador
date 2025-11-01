@@ -7,27 +7,32 @@ import java.util.List;
 import javax.swing.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.io.File; // Necesario para el JFileChooser
+import java.io.File;
+import javax.swing.border.EmptyBorder; // Importación necesaria
 
 public class RequerimientosAnexoDialog extends JDialog {
 
     private final List<RequerimientoLicitador> requerimientos;
-    private boolean aceptado = false; // Indica si el usuario aceptó después de la validación
+    private final String textoDeclarativo; // NUEVO CAMPO
+    private boolean aceptado = false;
     
-    // Componentes de la GUI
     private JTabbedPane tabbedPane;
+    // Mapa para guardar la referencia a los componentes de entrada (JTextField[], JCheckBox)
+    private Map<RequerimientoLicitador, Component[]> componentesMap = new HashMap<>(); 
 
     /**
      * Constructor del diálogo de requisitos.
      * @param owner El Frame padre (MainWindow).
      * @param requerimientos La lista de RequerimientoLicitador a cumplimentar.
+     * @param textoDeclarativo El HTML de los artículos de solo lectura.
      */
-    public RequerimientosAnexoDialog(Frame owner, List<RequerimientoLicitador> requerimientos) {
+    public RequerimientosAnexoDialog(Frame owner, List<RequerimientoLicitador> requerimientos, String textoDeclarativo) {
         super(owner, "Cumplimentar Requisitos Interactivos del Anexo", true);
         this.requerimientos = requerimientos;
+        this.textoDeclarativo = (textoDeclarativo == null || textoDeclarativo.isEmpty()) ? "<html><p>No hay artículos declarativos requeridos.</p></html>" : textoDeclarativo;
         
         initComponents();
-        setSize(700, 550);
+        setSize(750, 600);
         setLocationRelativeTo(owner);
     }
     
@@ -35,75 +40,73 @@ public class RequerimientosAnexoDialog extends JDialog {
         setLayout(new BorderLayout(10, 10));
         
         tabbedPane = new JTabbedPane();
-        
-        // Crear una pestaña (panel) para cada requerimiento interactivo
+
+        // --- PESTAÑA 1: LECTURA (NUEVA) ---
+        JTextPane textPaneLectura = new JTextPane();
+        textPaneLectura.setContentType("text/html");
+        textPaneLectura.setText(textoDeclarativo);
+        textPaneLectura.setEditable(false);
+        textPaneLectura.setCaretPosition(0); // Scroll al inicio
+        tabbedPane.addTab("Lectura Obligatoria (Artículos Declarativos)", new JScrollPane(textPaneLectura));
+        // ------------------------------------
+
+        // Pestañas 2 en adelante: Requerimientos Interactivos
         for (int i = 0; i < requerimientos.size(); i++) {
             RequerimientoLicitador req = requerimientos.get(i);
             JPanel panelRequerimiento = buildRequerimientoPanel(req);
-            // Título de la pestaña: Ej. "Art. 1: Declaración Solvencia"
-            tabbedPane.addTab("Art. " + (i + 1) + ": " + req.getTituloArticulo(), panelRequerimiento); 
+            tabbedPane.addTab("Requerimiento " + (i + 1) + ": " + req.getTituloArticulo(), panelRequerimiento); 
         }
 
         add(tabbedPane, BorderLayout.CENTER);
 
-        // Panel de Botones inferior
+        // Panel de Botones
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton btnAceptar = new JButton("Confirmar Requisitos y Continuar");
         JButton btnCancelar = new JButton("Cancelar Adhesión");
         
         btnAceptar.addActionListener(e -> intentarAceptar());
-        btnCancelar.addActionListener(e -> dispose()); // Solo cierra el diálogo, mantiene la posibilidad de reabrir
+        btnCancelar.addActionListener(e -> dispose());
 
         btnPanel.add(btnAceptar);
         btnPanel.add(btnCancelar);
         add(btnPanel, BorderLayout.SOUTH);
     }
     
-    // --------------------------------------------------------------------------
-    // Métodos para construir los Paneles de Interacción
-    // --------------------------------------------------------------------------
-
     private JPanel buildRequerimientoPanel(RequerimientoLicitador req) {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        // 1. Título y Pregunta (Zona NORTE)
         JTextPane txtPregunta = new JTextPane();
         txtPregunta.setContentType("text/html");
         txtPregunta.setText("<html><h3>" + req.getTituloArticulo() + "</h3><p><b>Pregunta:</b> " + req.getPregunta() + "</p></html>");
         txtPregunta.setEditable(false);
         panel.add(txtPregunta, BorderLayout.NORTH);
 
-        // 2. Controles de Respuesta (Sí/No) y Contenido Condicional (Zona CENTRO)
-        
-        // Checkbox principal para la respuesta SI/NO
-        JCheckBox chkRespuesta = new JCheckBox("Respuesta: Acepto/Confirmo las condiciones del artículo");
-        
-        // Panel que contendrá los campos de texto o el botón de fichero
+        JCheckBox chkRespuesta = new JCheckBox("Respuesta: Acepto/Confirmo (Sí)");
         JPanel pnlCondicional = new JPanel(new GridBagLayout());
-        pnlCondicional.setBorder(BorderFactory.createTitledBorder("Datos Requeridos al Aceptar"));
-        pnlCondicional.setVisible(false); // Inicialmente oculto
+        pnlCondicional.setBorder(BorderFactory.createTitledBorder("Datos Requeridos al Confirmar (Acción: " + req.getAccionSi() + ")"));
+        pnlCondicional.setVisible(false);
         
-        // Usamos ClientProperty para adjuntar el tipo de acción y el modelo
-        chkRespuesta.putClientProperty("REQ_OBJECT", req);
-        chkRespuesta.putClientProperty("TIPO_ACCION", req.getAccionSi());
+        Component[] componentesAccion = null;
 
-        // Construir los componentes condicionales
         if (ArticuloAnexo.ACCION_PEDIR_CAMPOS.equals(req.getAccionSi())) {
-            buildCamposPanel(pnlCondicional, req);
+            componentesAccion = buildCamposPanel(pnlCondicional, req);
         } else if (ArticuloAnexo.ACCION_PEDIR_FICHERO.equals(req.getAccionSi())) {
-            buildFicheroPanel(pnlCondicional, req);
+            componentesAccion = buildFicheroPanel(pnlCondicional, req);
+        } else {
+             pnlCondicional.add(new JLabel("No se requiere ninguna acción adicional."));
         }
         
-        // Listener para habilitar/deshabilitar la sección condicional
+        componentesMap.put(req, componentesAccion);
+        chkRespuesta.putClientProperty("REQ_OBJECT", req); 
+
         chkRespuesta.addActionListener(e -> {
-            pnlCondicional.setVisible(chkRespuesta.isSelected());
+            pnlCondicional.setVisible(chkRespuesta.isSelected() && !req.getAccionSi().equals(ArticuloAnexo.ACCION_NINGUNA));
             panel.revalidate();
             panel.repaint();
         });
         
-        // Ensamblaje final de la pestaña
-        JPanel pnlCentro = new JPanel(new BorderLayout());
+        JPanel pnlCentro = new JPanel(new BorderLayout(5, 10));
         pnlCentro.add(chkRespuesta, BorderLayout.NORTH);
         pnlCentro.add(pnlCondicional, BorderLayout.CENTER);
         
@@ -111,13 +114,14 @@ public class RequerimientosAnexoDialog extends JDialog {
         return panel;
     }
     
-    private void buildCamposPanel(JPanel container, RequerimientoLicitador req) {
+    // Devuelve los JTextFields creados
+    private Component[] buildCamposPanel(JPanel container, RequerimientoLicitador req) {
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         
-        Map<String, JTextField> campos = new HashMap<>();
         String[] etiquetas = req.getEtiquetasCampos();
+        JTextField[] textFields = new JTextField[etiquetas.length];
         
         for (int i = 0; i < etiquetas.length; i++) {
             gbc.gridx = 0; gbc.gridy = i; gbc.weightx = 0;
@@ -125,113 +129,89 @@ public class RequerimientosAnexoDialog extends JDialog {
             
             gbc.gridx = 1; gbc.weightx = 1;
             JTextField txtCampo = new JTextField(30);
-            campos.put(etiquetas[i], txtCampo);
+            textFields[i] = txtCampo;
             container.add(txtCampo, gbc);
         }
-        
-        // Adjuntar el Map de componentes al panel para recuperarlo luego en la validación
-        container.putClientProperty("CAMPOS_MAP", campos);
+        return textFields;
     }
     
-    private void buildFicheroPanel(JPanel container, RequerimientoLicitador req) {
+    // Devuelve el JTextField de la ruta
+    private Component[] buildFicheroPanel(JPanel container, RequerimientoLicitador req) {
         JTextField txtRuta = new JTextField(40);
         txtRuta.setEditable(false);
         JButton btnBuscar = new JButton("Seleccionar Fichero...");
         
         btnBuscar.addActionListener(e -> {
             JFileChooser fc = new JFileChooser();
-            // Asegurarse de que solo se puedan seleccionar archivos, no directorios
             fc.setFileSelectionMode(JFileChooser.FILES_ONLY); 
-            
             if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                File file = fc.getSelectedFile();
-                txtRuta.setText(file.getAbsolutePath());
+                txtRuta.setText(fc.getSelectedFile().getAbsolutePath());
             }
         });
         
         container.setLayout(new FlowLayout(FlowLayout.LEFT));
-        container.add(new JLabel("Ruta del Fichero requerido:"));
+        container.add(new JLabel("Fichero requerido:"));
         container.add(txtRuta);
         container.add(btnBuscar);
         
-        // Adjuntar el campo de texto al panel para la validación
-        container.putClientProperty("RUTA_FICHERO_FIELD", txtRuta);
+        return new Component[]{txtRuta};
     }
-
-    // --------------------------------------------------------------------------
-    // Lógica de Aceptación y Validación
-    // --------------------------------------------------------------------------
 
     private void intentarAceptar() {
         if (validarYTransferirDatos()) {
             this.aceptado = true;
-            dispose(); // Cierra el diálogo y retorna el control a MainWindow
+            dispose();
         }
     }
     
-    /**
-     * Itera sobre todas las pestañas, valida la información y transfiere
-     * los datos de la GUI al modelo RequerimientoLicitador.
-     * @return true si la validación es exitosa.
-     */
     private boolean validarYTransferirDatos() {
-        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
-            // Navegación: Pestaña -> Panel Centro -> Componente Checkbox/Condicional
+        // Itera sobre las pestañas (saltando la pestaña 0, que es la de "Lectura")
+        for (int i = 1; i < tabbedPane.getTabCount(); i++) {
+            RequerimientoLicitador req = requerimientos.get(i-1); // Ajuste de índice
+            
             JPanel panel = (JPanel) tabbedPane.getComponentAt(i);
             JPanel pnlCentro = (JPanel) panel.getComponent(1);
-            
             JCheckBox chkRespuesta = (JCheckBox) pnlCentro.getComponent(0); 
-            RequerimientoLicitador req = (RequerimientoLicitador) chkRespuesta.getClientProperty("REQ_OBJECT");
-            JPanel pnlCondicional = (JPanel) pnlCentro.getComponent(1);
 
-            // 1. Transferir Respuesta Sí/No al modelo
             req.setRespuestaSi(chkRespuesta.isSelected());
             
-            // 2. Si la respuesta es SÍ, validar y transferir la acción condicional
             if (req.isRespuestaSi()) {
-                String tipoAccion = (String) chkRespuesta.getClientProperty("TIPO_ACCION");
-
-                if (ArticuloAnexo.ACCION_PEDIR_CAMPOS.equals(tipoAccion)) {
-                    // Acción: PEDIR_CAMPOS
-                    Map<String, JTextField> campos = (Map<String, JTextField>) pnlCondicional.getClientProperty("CAMPOS_MAP");
+                Component[] componentes = componentesMap.get(req);
+                
+                if (ArticuloAnexo.ACCION_PEDIR_CAMPOS.equals(req.getAccionSi())) {
                     Map<String, String> valores = new HashMap<>();
+                    JTextField[] textFields = (JTextField[]) componentes;
                     
-                    // Validación de campos no vacíos
-                    for (Map.Entry<String, JTextField> entry : campos.entrySet()) {
-                        if (entry.getValue().getText().trim().isEmpty()) {
-                            JOptionPane.showMessageDialog(this, "Debe rellenar el campo '" + entry.getKey() + "' en el Artículo " + (i+1) + ".", "Validación Requerida", JOptionPane.ERROR_MESSAGE);
-                            tabbedPane.setSelectedIndex(i); // Vuelve a la pestaña del error
+                    for (int j = 0; j < req.getEtiquetasCampos().length; j++) {
+                        if (textFields[j].getText().trim().isEmpty()) {
+                            JOptionPane.showMessageDialog(this, "Debe rellenar el campo '" + req.getEtiquetasCampos()[j] + "' en el Artículo '" + req.getTituloArticulo() + "'.", "Validación Requerida", JOptionPane.ERROR_MESSAGE);
+                            tabbedPane.setSelectedIndex(i);
                             return false;
                         }
-                        valores.put(entry.getKey(), entry.getValue().getText().trim());
+                        valores.put(req.getEtiquetasCampos()[j], textFields[j].getText().trim());
                     }
                     req.setValoresCampos(valores);
                 } 
-                else if (ArticuloAnexo.ACCION_PEDIR_FICHERO.equals(tipoAccion)) {
-                    // Acción: PEDIR_FICHERO
-                    JTextField txtRuta = (JTextField) pnlCondicional.getClientProperty("RUTA_FICHERO_FIELD");
+                else if (ArticuloAnexo.ACCION_PEDIR_FICHERO.equals(req.getAccionSi())) {
+                    JTextField txtRuta = (JTextField) componentes[0];
                     if (txtRuta.getText().trim().isEmpty()) {
-                        JOptionPane.showMessageDialog(this, "Debe seleccionar un fichero requerido en el Artículo " + (i+1) + ".", "Validación Requerida", JOptionPane.ERROR_MESSAGE);
-                        tabbedPane.setSelectedIndex(i); // Vuelve a la pestaña del error
+                        JOptionPane.showMessageDialog(this, "Debe seleccionar un fichero requerido en el artículo '" + req.getTituloArticulo() + "'.", "Validación Requerida", JOptionPane.ERROR_MESSAGE);
+                        tabbedPane.setSelectedIndex(i);
                         return false;
                     }
                     req.setRutaFichero(txtRuta.getText().trim());
                 }
             }
         }
-        return true; // Todos los requisitos cumplimentados y validados
+        return true;
     }
 
-    // --------------------------------------------------------------------------
-    // Getters para que MainWindow pueda leer el resultado
-    // --------------------------------------------------------------------------
-
+    // --- Getters para MainWindow ---
     public boolean isAceptado() {
         return aceptado;
     }
 
     public List<RequerimientoLicitador> getRespuestasFinales() {
-        // La lista 'requerimientos' que recibimos en el constructor ya está modificada
         return requerimientos;
     }
 }
