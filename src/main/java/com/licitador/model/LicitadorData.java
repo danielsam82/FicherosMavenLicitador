@@ -3,11 +3,11 @@ package com.licitador.model;
 import java.io.Serializable;
 
 /**
- * Modelo de datos mutable (Java Bean) que almacena la información completa
- * del licitador/empresa que presenta la oferta.
- *
- * Implementa {@link Serializable} para permitir que los datos del licitador
- * se guarden y carguen junto con el estado de la sesión.
+ * A mutable data model (Java Bean) that stores the complete information of the
+ * bidder/company submitting the offer.
+ * <p>
+ * Implements {@link Serializable} to allow the bidder's data to be saved and
+ * loaded along with the session state.
  */
 public class LicitadorData implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -15,19 +15,14 @@ public class LicitadorData implements Serializable {
     private String razonSocial;
     private String nif;
     private boolean esPyme;
-
-    /**
-     * Indica si la empresa licitadora es extranjera (no española).
-     */
     private boolean esExtranjera;
-
     private String domicilio;
     private String telefono;
     private String email;
 
     /**
-     * Constructor por defecto. Inicializa todos los campos con cadenas vacías
-     * y los indicadores booleanos a {@code false}.
+     * Default constructor. Initializes all fields with empty strings and
+     * boolean flags to {@code false}.
      */
     public LicitadorData() {
         this.razonSocial = "";
@@ -39,97 +34,108 @@ public class LicitadorData implements Serializable {
         this.email = "";
     }
 
-    // --- Getters y Setters ---
-
     /**
-     * Obtiene la razón social (nombre) del licitador.
-     * @return La razón social.
+     * Gets the corporate name of the bidder.
+     *
+     * @return The corporate name.
      */
     public String getRazonSocial() { return razonSocial; }
 
     /**
-     * Establece la razón social (nombre) del licitador.
-     * @param razonSocial La nueva razón social.
+     * Sets the corporate name of the bidder.
+     *
+     * @param razonSocial The new corporate name.
      */
     public void setRazonSocial(String razonSocial) { this.razonSocial = razonSocial; }
 
     /**
-     * Obtiene el Número de Identificación Fiscal (NIF o CIF) del licitador.
-     * @return El NIF/CIF.
+     * Gets the Tax Identification Number (NIF or CIF) of the bidder.
+     *
+     * @return The NIF/CIF.
      */
     public String getNif() { return nif; }
 
     /**
-     * Establece el Número de Identificación Fiscal (NIF o CIF) del licitador.
-     * @param nif El nuevo NIF/CIF.
+     * Sets the Tax Identification Number (NIF or CIF) of the bidder.
+     *
+     * @param nif The new NIF/CIF.
      */
     public void setNif(String nif) { this.nif = nif; }
 
     /**
-     * Indica si el licitador es una Pequeña y Mediana Empresa (PYME).
-     * @return {@code true} si es PYME; {@code false} en caso contrario.
+     * Indicates whether the bidder is a Small and Medium-sized Enterprise (SME).
+     *
+     * @return {@code true} if it is an SME; {@code false} otherwise.
      */
     public boolean esPyme() { return esPyme; }
 
     /**
-     * Establece si el licitador es una PYME.
-     * @param esPyme {@code true} si es PYME.
+     * Sets whether the bidder is an SME.
+     *
+     * @param esPyme {@code true} if it is an SME.
      */
     public void setEsPyme(boolean esPyme) { this.esPyme = esPyme; }
 
     /**
-     * Indica si la empresa licitadora tiene domicilio en el extranjero.
-     * @return {@code true} si la empresa es extranjera; {@code false} en caso contrario.
+     * Indicates whether the bidding company is based abroad.
+     *
+     * @return {@code true} if the company is foreign; {@code false} otherwise.
      */
     public boolean esExtranjera() { return esExtranjera; }
 
     /**
-     * Establece si la empresa licitadora es extranjera.
-     * @param esExtranjera {@code true} si la empresa es extranjera.
+     * Sets whether the bidding company is foreign.
+     *
+     * @param esExtranjera {@code true} if the company is foreign.
      */
     public void setEsExtranjera(boolean esExtranjera) { this.esExtranjera = esExtranjera; }
 
     /**
-     * Obtiene el domicilio completo del licitador.
-     * @return El domicilio.
+     * Gets the full address of the bidder.
+     *
+     * @return The address.
      */
     public String getDomicilio() { return domicilio; }
 
     /**
-     * Establece el domicilio completo del licitador.
-     * @param domicilio El nuevo domicilio.
+     * Sets the full address of the bidder.
+     *
+     * @param domicilio The new address.
      */
     public void setDomicilio(String domicilio) { this.domicilio = domicilio; }
 
     /**
-     * Obtiene el número de teléfono de contacto.
-     * @return El teléfono.
+     * Gets the contact phone number.
+     *
+     * @return The phone number.
      */
     public String getTelefono() { return telefono; }
 
     /**
-     * Establece el número de teléfono de contacto.
-     * @param telefono El nuevo teléfono.
+     * Sets the contact phone number.
+     *
+     * @param telefono The new phone number.
      */
     public void setTelefono(String telefono) { this.telefono = telefono; }
 
     /**
-     * Obtiene la dirección de correo electrónico de contacto.
-     * @return El email.
+     * Gets the contact email address.
+     *
+     * @return The email address.
      */
     public String getEmail() { return email; }
 
     /**
-     * Establece la dirección de correo electrónico de contacto.
-     * @param email El nuevo email.
+     * Sets the contact email address.
+     *
+     * @param email The new email address.
      */
     public void setEmail(String email) { this.email = email; }
 
     /**
-     * Genera una representación en cadena de texto de los datos del licitador,
-     * útil para el registro (log).
+     * Generates a string representation of the bidder's data, useful for logging.
      *
-     * @return Una cadena de texto con la información detallada del licitador.
+     * @return A string with the detailed information of the bidder.
      */
     @Override
     public String toString() {

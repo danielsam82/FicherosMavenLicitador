@@ -3,35 +3,32 @@ package com.licitador.model;
 import java.io.Serializable;
 
 /**
- * Representa un archivo o documento que es requerido para ser adjuntado por el
- * licitador en un procedimiento de licitación. Implementa {@code Serializable}
- * para poder ser guardado dentro del archivo JAR de configuración.
+ * Represents a file or document that is required to be attached by the bidder in a tender process.
+ * Implements {@code Serializable} to be saved within the configuration JAR file.
  */
 public class ArchivoRequerido implements Serializable {
 
     /**
-     * El nombre o descripción del archivo/documento (ej: 'Documento Oferta
-     * Económica').
+     * The name or description of the file/document (e.g., 'Economic Offer Document').
      */
     private final String nombre;
 
     /**
-     * Indica si el archivo es de carga obligatoria para el licitador.
+     * Indicates whether the file is mandatory for the bidder to upload.
      */
     private final boolean obligatorio;
 
     /**
-     * Indica si el archivo tiene carácter confidencial y requiere supuestos de
-     * confidencialidad.
+     * Indicates whether the file is confidential and requires confidentiality assumptions.
      */
     private final boolean esConfidencial;
 
     /**
-     * Constructor para crear una instancia de un archivo requerido.
+     * Constructs a new instance of a required file.
      *
-     * @param nombre El nombre del archivo/documento.
-     * @param obligatorio Indica si el archivo es obligatorio.
-     * @param esConfidencial Indica si el archivo es confidencial.
+     * @param nombre The name of the file/document.
+     * @param obligatorio Indicates whether the file is mandatory.
+     * @param esConfidencial Indicates whether the file is confidential.
      */
     public ArchivoRequerido(String nombre, boolean obligatorio, boolean esConfidencial) {
         this.nombre = nombre;
@@ -39,29 +36,28 @@ public class ArchivoRequerido implements Serializable {
         this.esConfidencial = esConfidencial;
     }
 
-    // Getters...
     /**
-     * Obtiene el nombre del archivo requerido.
+     * Gets the name of the required file.
      *
-     * @return El nombre del archivo.
+     * @return The name of the file.
      */
     public String getNombre() {
         return nombre;
     }
 
     /**
-     * Determina si la carga de este archivo es obligatoria.
+     * Determines whether the upload of this file is mandatory.
      *
-     * @return {@code true} si es obligatorio, {@code false} en caso contrario.
+     * @return {@code true} if it is mandatory, {@code false} otherwise.
      */
     public boolean esObligatorio() {
         return obligatorio;
     }
 
     /**
-     * Determina si este archivo ha sido marcado como confidencial.
+     * Determines whether this file has been marked as confidential.
      *
-     * @return {@code true} si es confidencial, {@code false} en caso contrario.
+     * @return {@code true} if it is confidential, {@code false} otherwise.
      */
     public boolean esConfidencial() {
         return esConfidencial;

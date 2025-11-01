@@ -9,21 +9,23 @@ import java.util.HashMap;
 import java.util.Map;
 import java.io.File; // Necesario para el JFileChooser
 
+/**
+ * A dialog for fulfilling the interactive requirements of the annex.
+ */
 public class RequerimientosAnexoDialog extends JDialog {
 
     private final List<RequerimientoLicitador> requerimientos;
-    private boolean aceptado = false; // Indica si el usuario aceptó después de la validación
+    private boolean aceptado = false;
     
-    // Componentes de la GUI
     private JTabbedPane tabbedPane;
 
     /**
-     * Constructor del diálogo de requisitos.
-     * @param owner El Frame padre (MainWindow).
-     * @param requerimientos La lista de RequerimientoLicitador a cumplimentar.
+     * Constructs a new RequerimientosAnexoDialog.
+     * @param owner The parent frame (MainWindow).
+     * @param requerimientos The list of RequerimientoLicitador to be filled out.
      */
     public RequerimientosAnexoDialog(Frame owner, List<RequerimientoLicitador> requerimientos) {
-        super(owner, "Cumplimentar Requisitos Interactivos del Anexo", true);
+        super(owner, "Fulfill Interactive Annex Requirements", true);
         this.requerimientos = requerimientos;
         
         initComponents();
@@ -223,15 +225,19 @@ public class RequerimientosAnexoDialog extends JDialog {
     }
 
     // --------------------------------------------------------------------------
-    // Getters para que MainWindow pueda leer el resultado
-    // --------------------------------------------------------------------------
-
+    /**
+     * Checks if the user accepted the dialog.
+     * @return true if the user clicked "Confirmar Requisitos y Continuar" and the data was validated.
+     */
     public boolean isAceptado() {
         return aceptado;
     }
 
+    /**
+     * Gets the final answers from the user.
+     * @return The list of RequerimientoLicitador objects with the user's answers.
+     */
     public List<RequerimientoLicitador> getRespuestasFinales() {
-        // La lista 'requerimientos' que recibimos en el constructor ya está modificada
         return requerimientos;
     }
 }

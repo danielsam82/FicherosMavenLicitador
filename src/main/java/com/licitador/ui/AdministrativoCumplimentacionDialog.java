@@ -13,8 +13,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Diálogo para la cumplimentación de los datos administrativos del licitador,
- * incluyendo la selección de participación en lotes.
+ * A dialog for filling in the administrative data of the bidder,
+ * including the selection of participation in lots.
  */
 public class AdministrativoCumplimentacionDialog extends JDialog {
 
@@ -23,7 +23,6 @@ public class AdministrativoCumplimentacionDialog extends JDialog {
     private final Configuracion configuracion;
     private final Logger logger;
 
-    // Campos de entrada de datos del licitador
     private JTextField txtRazonSocial;
     private JTextField txtNif;
     private JTextField txtDomicilio;
@@ -31,18 +30,24 @@ public class AdministrativoCumplimentacionDialog extends JDialog {
     private JTextField txtEmail;
     private JCheckBox chkEsPyme;
     private JCheckBox chkEsExtranjera;
-    private Map<Integer, JCheckBox> loteCheckboxes; // Checkboxes para la participación en lotes
+    private Map<Integer, JCheckBox> loteCheckboxes;
 
-    // Se asume que tienes un logger para el diálogo
+    /**
+     * Constructs a new AdministrativoCumplimentacionDialog.
+     *
+     * @param owner The parent frame.
+     * @param fileManager The file manager.
+     * @param logger The logger.
+     */
     public AdministrativoCumplimentacionDialog(JFrame owner, FileManager fileManager, Logger logger) {
-        super(owner, "Cumplimentación Administrativa y Lotes", true);
+        super(owner, "Administrative Data and Lots", true);
         this.fileManager = fileManager;
         this.licitadorData = fileManager.getLicitadorData();
         this.configuracion = fileManager.getConfiguracion();
         this.logger = logger;
         
         initComponents();
-        loadLicitadorData(); // Cargar datos existentes si los hay
+        loadLicitadorData();
         
         pack();
         setLocationRelativeTo(owner);

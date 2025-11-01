@@ -5,31 +5,31 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Clase que encapsula la información completa del licitador (datos personales y de la empresa)
- * junto con la selección de los lotes específicos a los que desea presentar una oferta.
- *
- * Esta clase es la entidad central para guardar y restaurar el estado de participación
- * del licitador en la licitación.
- *
- * Implementa {@link Serializable} para permitir la persistencia (guardado/carga de sesión).
+ * This class encapsulates the complete information of the bidder (personal and company data)
+ * along with the selection of the specific lots to which they wish to submit a bid.
+ * <p>
+ * This class is the central entity for saving and restoring the bidder's participation
+ * status in the tender.
+ * <p>
+ * Implements {@link Serializable} to allow persistence (session saving/loading).
  */
 public class LicitadorLotesData implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * El objeto que contiene la información personal y de la empresa del licitador.
+     * The object containing the bidder's personal and company information.
      */
     private LicitadorData licitador;
 
     /**
-     * Un conjunto de IDs de lotes (generalmente Strings) que el licitador ha seleccionado
-     * para participar. Si el conjunto está vacío, se asume que no participa en ningún lote.
+     * A set of lot IDs (usually Strings) that the bidder has selected to participate in.
+     * If the set is empty, it is assumed that they are not participating in any lot.
      */
     private Set<String> lotesSeleccionadosIds;
 
     /**
-     * Constructor por defecto. Inicializa los datos del licitador con un nuevo objeto
-     * {@code LicitadorData} y el conjunto de lotes seleccionados como un {@code HashSet} vacío.
+     * Default constructor. Initializes the bidder's data with a new {@code LicitadorData}
+     * object and the set of selected lots as an empty {@code HashSet}.
      */
     public LicitadorLotesData() {
         this.licitador = new LicitadorData();
@@ -37,55 +37,57 @@ public class LicitadorLotesData implements Serializable {
     }
 
     /**
-     * Constructor para inicializar la clase con datos preexistentes.
+     * Constructor to initialize the class with pre-existing data.
      *
-     * @param licitador La instancia de {@code LicitadorData} a utilizar.
-     * @param lotesSeleccionadosIds El conjunto de IDs de los lotes seleccionados.
+     * @param licitador The {@code LicitadorData} instance to use.
+     * @param lotesSeleccionadosIds The set of selected lot IDs.
      */
     public LicitadorLotesData(LicitadorData licitador, Set<String> lotesSeleccionadosIds) {
         this.licitador = licitador;
         this.lotesSeleccionadosIds = lotesSeleccionadosIds;
     }
 
-    // --- Getters y Setters ---
-
     /**
-     * Obtiene los datos del licitador.
-     * @return El objeto {@code LicitadorData}.
+     * Gets the bidder's data.
+     *
+     * @return The {@code LicitadorData} object.
      */
     public LicitadorData getLicitador() {
         return licitador;
     }
 
     /**
-     * Establece los datos del licitador.
-     * @param licitador El nuevo objeto {@code LicitadorData}.
+     * Sets the bidder's data.
+     *
+     * @param licitador The new {@code LicitadorData} object.
      */
     public void setLicitador(LicitadorData licitador) {
         this.licitador = licitador;
     }
 
     /**
-     * Obtiene el conjunto de IDs de los lotes a los que el licitador ha decidido concurrir.
-     * @return El {@code Set} de IDs de lotes seleccionados.
+     * Gets the set of IDs of the lots in which the bidder has decided to participate.
+     *
+     * @return The {@code Set} of selected lot IDs.
      */
     public Set<String> getLotesSeleccionadosIds() {
         return lotesSeleccionadosIds;
     }
 
     /**
-     * Establece el conjunto de IDs de los lotes seleccionados.
-     * @param lotesSeleccionadosIds El nuevo {@code Set} de IDs de lotes.
+     * Sets the set of selected lot IDs.
+     *
+     * @param lotesSeleccionadosIds The new {@code Set} of lot IDs.
      */
     public void setLotesSeleccionadosIds(Set<String> lotesSeleccionadosIds) {
         this.lotesSeleccionadosIds = lotesSeleccionadosIds;
     }
 
     /**
-     * Comprueba si el licitador ha seleccionado el lote con el ID dado, indicando participación.
+     * Checks if the bidder has selected the lot with the given ID, indicating participation.
      *
-     * @param loteId El ID del lote a verificar (Ej: "Lote 1", "Lote 2", etc.).
-     * @return {@code true} si el {@code loteId} está presente en el conjunto de lotes seleccionados, {@code false} en caso contrario.
+     * @param loteId The ID of the lot to check (e.g., "Lot 1", "Lot 2", etc.).
+     * @return {@code true} if the {@code loteId} is present in the set of selected lots, {@code false} otherwise.
      */
     public boolean participaEnLote(String loteId) {
         return lotesSeleccionadosIds.contains(loteId);

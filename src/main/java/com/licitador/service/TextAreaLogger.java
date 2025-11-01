@@ -7,45 +7,43 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Implementación de la interfaz {@link Logger} que dirige la salida de los mensajes
- * de registro (logs) a un componente {@link JTextArea} dentro de una aplicación Swing.
- *
- * Esta clase es segura para hilos, ya que utiliza {@link SwingUtilities#invokeLater(Runnable)}
- * para asegurar que todas las modificaciones al JTextArea se realicen en el Event Dispatch Thread (EDT).
- * Los mensajes se formatean con un prefijo indicando el nivel (INFO, LOG o ERROR) y una marca de tiempo.
+ * An implementation of the {@link Logger} interface that directs log messages to a
+ * {@link JTextArea} component within a Swing application.
+ * <p>
+ * This class is thread-safe, as it uses {@link SwingUtilities#invokeLater(Runnable)}
+ * to ensure that all modifications to the JTextArea are made on the Event Dispatch Thread (EDT).
+ * Messages are formatted with a prefix indicating the level (INFO, LOG, or ERROR) and a timestamp.
+ * </p>
  */
 public class TextAreaLogger implements Logger {
     
     private final JTextArea textArea;
-    // Uso de java.time.format para manejo moderno de fechas
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     /**
-     * Constructor para {@code TextAreaLogger}.
+     * Constructs a {@code TextAreaLogger}.
      *
-     * @param textArea El {@link JTextArea} donde se mostrarán los mensajes de registro.
-     * @throws IllegalArgumentException si el {@link JTextArea} proporcionado es nulo.
+     * @param textArea The {@link JTextArea} where the log messages will be displayed.
+     * @throws IllegalArgumentException if the provided {@link JTextArea} is null.
      */
     public TextAreaLogger(JTextArea textArea) {
         if (textArea == null) {
-            throw new IllegalArgumentException("JTextArea no puede ser null");
+            throw new IllegalArgumentException("JTextArea cannot be null");
         }
         this.textArea = textArea;
     }
     
     /**
-     * Método auxiliar para formatear y añadir mensajes al JTextArea, asegurando
-     * que se ejecuta en el Event Dispatch Thread (EDT).
-     * * @param prefix El prefijo del nivel (ej: [INFO], [ERROR]).
-     * @param message El cuerpo del mensaje.
+     * A helper method to format and append messages to the JTextArea, ensuring
+     * that it runs on the Event Dispatch Thread (EDT).
+     * @param prefix The level prefix (e.g., [INFO], [ERROR]).
+     * @param message The body of the message.
      */
     private void appendFormattedMessage(String prefix, String message) {
          if (textArea != null) {
              String timestamp = LocalDateTime.now().format(formatter);
              SwingUtilities.invokeLater(() -> {
-                 // Formato: [HH:mm:ss] [PREFIJO] Mensaje
                  textArea.append("[" + timestamp + "] " + prefix + message + "\n");
-                 // Desplazar al final para ver los últimos mensajes
                  textArea.setCaretPosition(textArea.getDocument().getLength());
              });
          }
@@ -53,9 +51,9 @@ public class TextAreaLogger implements Logger {
 
 
     /**
-     * Registra un mensaje de nivel LOG (general) en el {@link JTextArea}.
+     * Logs a general-level message to the {@link JTextArea}.
      *
-     * @param message El mensaje general a registrar.
+     * @param message The general message to log.
      */
     @Override
     public void log(String message) {
@@ -63,26 +61,22 @@ public class TextAreaLogger implements Logger {
     }
 
     /**
-     * Registra un mensaje de nivel ERROR en el {@link JTextArea}.
+     * Logs an error-level message to the {@link JTextArea}.
      *
-     * @param message El mensaje de error a registrar.
+     * @param message The error message to log.
      */
     @Override
     public void logError(String message) {
-        // Tu versión original usaba "[ERROR] ", pero lo adapto al formato con timestamp.
         appendFormattedMessage("ERROR: ", message);
     }
     
     /**
-     * Registra un mensaje de nivel INFO en el {@link JTextArea}.
+     * Logs an info-level message to the {@link JTextArea}.
      *
-     * Este método es crucial para corregir el error de compilación en ConfiguradorApp.
-     *
-     * @param message El mensaje de información a registrar.
+     * @param message The informational message to log.
      */
     @Override
     public void logInfo(String message) {
-        // Implementación del método que faltaba
         appendFormattedMessage("INFO: ", message);
     }
 }

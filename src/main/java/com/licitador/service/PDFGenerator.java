@@ -14,12 +14,11 @@ import java.util.Map;
 import java.awt.Color; // Para colores de tabla/celdas
 
 /**
- * Generador real de PDF utilizando la librería OpenPDF (lowagie.text). Crea el
- * Anexo Administrativo con los datos del licitador.
+ * A PDF generator using the OpenPDF library (lowagie.text).
+ * It creates the Administrative Annex with the bidder's data.
  */
 public class PDFGenerator {
 
-    // --- CONFIGURACIÓN DE FUENTES Y ESTILOS ---
     private static final Font FONT_TITLE = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14, Color.BLACK);
     private static final Font FONT_HEADER = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, Color.BLACK);
     private static final Font FONT_NORMAL = FontFactory.getFont(FontFactory.HELVETICA, 10, Color.BLACK);
@@ -27,33 +26,30 @@ public class PDFGenerator {
     private static final Color COLOR_HEADER_BG = new Color(230, 230, 230);
 
     /**
-     * Genera el Anexo Administrativo en formato PDF con OpenPDF.
+     * Generates the Administrative Annex in PDF format with OpenPDF.
      *
-     * @param licitadorData Datos del licitador.
-     * @param participacionPorLote Mapa de lotes seleccionados.
-     * @param configuracion Objeto de configuración para obtener el expediente.
-     * @return Array de bytes con el contenido del PDF binario.
-     * @throws DocumentException Si hay un error en la estructura del PDF.
-     * @throws IOException Si hay un error de I/O al escribir el PDF.
+     * @param licitadorData The bidder's data.
+     * @param participacionPorLote A map of the selected lots.
+     * @param configuracion The configuration object to get the file number.
+     * @return A byte array with the binary PDF content.
+     * @throws DocumentException If there is an error in the PDF structure.
+     * @throws IOException If there is an I/O error when writing the PDF.
      */
     public static byte[] generarAnexoAdministrativo(
             LicitadorData licitadorData,
             Map<Integer, Boolean> participacionPorLote,
             Configuracion configuracion) throws DocumentException, IOException {
 
-        // Usamos ByteArrayOutputStream para capturar el PDF en memoria.
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4, 50, 50, 50, 50);
             PdfWriter.getInstance(document, baos);
             document.open();
 
-            // 1. TÍTULO
             Paragraph title = new Paragraph("ANEXO DE CUMPLIMENTACIÓN ADMINISTRATIVA", FONT_TITLE);
             title.setAlignment(Element.ALIGN_CENTER);
             title.setSpacingAfter(15);
             document.add(title);
 
-            // 2. DATOS DEL PROCEDIMIENTO
             PdfPTable infoTable = new PdfPTable(2);
             infoTable.setWidthPercentage(100);
             infoTable.addCell(createCell("Expediente N.º:", configuracion.getNumeroExpediente(), FONT_BOLD, FONT_NORMAL));
@@ -61,11 +57,9 @@ public class PDFGenerator {
             infoTable.setSpacingAfter(15);
             document.add(infoTable);
 
-            // 3. DATOS DEL LICITADOR
             document.add(new Paragraph("DATOS DE LA EMPRESA LICITADORA", FONT_HEADER));
             document.add(createLicitadorTable(licitadorData));
 
-            // 4. DECLARACIONES Y LOTES
             document.add(new Paragraph("DECLARACIONES Y PARTICIPACIÓN EN LOTES", FONT_HEADER));
             document.add(createDeclaracionTable(licitadorData));
 

@@ -7,6 +7,11 @@ import java.util.Arrays;
 import java.util.List;
 import javax.swing.*;
 
+/**
+ * A dialog for managing articles (ArticuloAnexo).
+ * It provides a user interface to create, read, update, and delete articles.
+ * The dialog displays a list of articles and a form to edit the selected article's details.
+ */
 public class ArticuloManagerDialog extends JDialog {
 
     private final ArticuloAnexoService articuloService;
@@ -35,7 +40,9 @@ public class ArticuloManagerDialog extends JDialog {
     private JButton btnInsertTag;
 
     /**
-     * Constructor del diálogo de gestión de Artículos de Anexos.
+     * Constructs a new ArticuloManagerDialog.
+     *
+     * @param owner The Frame from which the dialog is displayed.
      */
     public ArticuloManagerDialog(Frame owner) {
         super(owner, "Gestor de Artículos de Anexo Global", true);
@@ -454,7 +461,21 @@ public class ArticuloManagerDialog extends JDialog {
     // --- CLASE INTERNA: RENDERER ---
     // --------------------------------------------------------------------------
     
+    /**
+     * A custom cell renderer for the list of articles.
+     * It displays the article's string representation and highlights interactive articles.
+     */
     public static class ArticuloListCellRenderer extends DefaultListCellRenderer {
+        /**
+         * Returns a component that has been configured to display the specified value.
+         *
+         * @param list The JList we're painting.
+         * @param value The value returned by list.getModel().getElementAt(index).
+         * @param index The cells index.
+         * @param isSelected True if the specified cell was selected.
+         * @param cellHasFocus True if the specified cell has the focus.
+         * @return A component whose paint() method will render the specified value.
+         */
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);

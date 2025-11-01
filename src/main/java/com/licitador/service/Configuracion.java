@@ -5,77 +5,41 @@ import java.util.Objects;
 import java.util.Arrays;
 
 /**
- * Clase de modelo que encapsula toda la configuración de un procedimiento de
- * licitación.
+ * A model class that encapsulates the entire configuration of a tender procedure.
  * <p>
- * Incluye datos de identificación, estructura de lotes, y la lista de todos los
- * archivos requeridos (comunes y de oferta), junto con sus propiedades de
- * obligatoriedad y confidencialidad. Implementa {@code Serializable} para su
- * persistencia.
+ * It includes identification data, lot structure, and the list of all required files
+ * (common and offer), along with their mandatory and confidentiality properties.
+ * Implements {@code Serializable} for persistence.
  * </p>
  */
 public class Configuracion implements Serializable {
 
-    /**
-     * Descripción del objeto de la licitación.
-     */
     private final String objetoLicitacion;
-    /**
-     * Número de expediente administrativo de la licitación.
-     */
     private final String numeroExpediente;
-    /**
-     * Indica si el procedimiento está dividido en lotes.
-     */
     private final boolean tieneLotes;
-    /**
-     * Número total de lotes, si {@link #tieneLotes} es {@code true}.
-     */
     private final int numLotes;
-    /**
-     * Nombres de los archivos comunes o complementarios que se deben adjuntar.
-     */
     private final String[] nombresArchivosComunes;
-    /**
-     * Array booleano que indica la obligatoriedad de cada archivo común (índice
-     * correlativo a {@link #nombresArchivosComunes}).
-     */
     private final boolean[] archivosComunesObligatorios;
-    /**
-     * Array booleano que indica si cada archivo común es susceptible de ser
-     * declarado confidencial.
-     */
-    private final boolean[] archivosComunesConfidenciales; // ¡Campo añadido!
-    /**
-     * Array de objetos que definen las propiedades de los archivos específicos
-     * de la oferta.
-     *
-     * @see ArchivoOferta
-     */
+    private final boolean[] archivosComunesConfidenciales;
     private final ArchivoOferta[] archivosOferta;
-    /**
-     * Lista de los supuestos legales predefinidos de confidencialidad.
-     */
     private final String[] supuestosConfidencialidad;
 
     /**
-     * Constructor para inicializar una nueva configuración de licitación.
+     * Constructor to initialize a new tender configuration.
      *
-     * @param objetoLicitacion Objeto de la licitación.
-     * @param numeroExpediente Número de expediente.
-     * @param tieneLotes {@code true} si tiene lotes.
-     * @param numLotes Número de lotes.
-     * @param nombresArchivosComunes Nombres de archivos comunes.
-     * @param archivosComunesObligatorios Obligatoriedad de los archivos
-     * comunes.
-     * @param archivosComunesConfidenciales Susceptibilidad de confidencialidad
-     * de archivos comunes.
-     * @param archivosOferta Array de configuración de archivos de oferta.
-     * @param supuestosConfidencialidad Lista de supuestos de confidencialidad.
+     * @param objetoLicitacion The object of the tender.
+     * @param numeroExpediente The file number.
+     * @param tieneLotes {@code true} if it has lots.
+     * @param numLotes The number of lots.
+     * @param nombresArchivosComunes The names of the common files.
+     * @param archivosComunesObligatorios The mandatory status of the common files.
+     * @param archivosComunesConfidenciales The confidentiality susceptibility of the common files.
+     * @param archivosOferta An array of offer file configurations.
+     * @param supuestosConfidencialidad A list of confidentiality assumptions.
      */
     public Configuracion(String objetoLicitacion, String numeroExpediente, boolean tieneLotes, int numLotes,
             String[] nombresArchivosComunes, boolean[] archivosComunesObligatorios,
-            boolean[] archivosComunesConfidenciales, // ¡Parámetro añadido!
+            boolean[] archivosComunesConfidenciales,
             ArchivoOferta[] archivosOferta, String[] supuestosConfidencialidad) {
         this.objetoLicitacion = Objects.requireNonNull(objetoLicitacion);
         this.numeroExpediente = Objects.requireNonNull(numeroExpediente);
@@ -83,82 +47,78 @@ public class Configuracion implements Serializable {
         this.numLotes = numLotes;
         this.nombresArchivosComunes = Objects.requireNonNull(nombresArchivosComunes);
         this.archivosComunesObligatorios = archivosComunesObligatorios;
-        this.archivosComunesConfidenciales = Objects.requireNonNull(archivosComunesConfidenciales); // ¡Inicialización añadida!
+        this.archivosComunesConfidenciales = Objects.requireNonNull(archivosComunesConfidenciales);
         this.archivosOferta = Objects.requireNonNull(archivosOferta);
         this.supuestosConfidencialidad = Objects.requireNonNull(supuestosConfidencialidad);
     }
 
     /**
-     * Obtiene el objeto de la licitación.
+     * Gets the object of the tender.
      *
-     * @return El objeto de la licitación.
+     * @return The object of the tender.
      */
     public String getObjetoLicitacion() {
         return objetoLicitacion;
     }
 
     /**
-     * Obtiene el número de expediente de la licitación.
+     * Gets the file number of the tender.
      *
-     * @return El número de expediente.
+     * @return The file number.
      */
     public String getNumeroExpediente() {
         return numeroExpediente;
     }
 
     /**
-     * Consulta si el procedimiento está dividido en lotes.
+     * Checks if the procedure is divided into lots.
      *
-     * @return {@code true} si la licitación tiene lotes, {@code false} en caso
-     * contrario.
+     * @return {@code true} if the tender has lots, {@code false} otherwise.
      */
     public boolean isTieneLotes() {
         return tieneLotes;
     }
 
     /**
-     * Obtiene el número de lotes total.
+     * Gets the total number of lots.
      *
-     * @return El número de lotes.
+     * @return The number of lots.
      */
     public int getNumLotes() {
         return numLotes;
     }
 
     /**
-     * Obtiene los nombres de los archivos comunes requeridos.
+     * Gets the names of the required common files.
      *
-     * @return Array de {@code String} con los nombres de los archivos comunes.
+     * @return An array of {@code String} with the names of the common files.
      */
     public String[] getNombresArchivosComunes() {
         return nombresArchivosComunes;
     }
 
     /**
-     * Obtiene el array de la obligatoriedad de los archivos comunes.
+     * Gets the array of the mandatory status of the common files.
      *
-     * @return Array de {@code boolean} indicando la obligatoriedad.
+     * @return An array of {@code boolean} indicating the mandatory status.
      */
     public boolean[] getArchivosComunesObligatorios() {
         return archivosComunesObligatorios;
     }
 
     /**
-     * Obtiene el array que indica si los archivos comunes son susceptibles de
-     * ser confidenciales.
+     * Gets the array that indicates if the common files are susceptible to being confidential.
      *
-     * @return Array de {@code boolean} indicando la susceptibilidad de
-     * confidencialidad.
+     * @return An array of {@code boolean} indicating the confidentiality susceptibility.
      */
     public boolean[] getArchivosComunesConfidenciales() {
         return archivosComunesConfidenciales;
     }
 
     /**
-     * Obtiene un array con los nombres de todos los archivos de oferta.
+     * Gets an array with the names of all the offer files.
      *
-     * @return Array de {@code String} con los nombres de los archivos de
-     * oferta.
+     * @return An array of {@code String} with the names of the offer files.
      */
     public String[] getNombresArchivosOfertas() {
         return Arrays.stream(archivosOferta)
@@ -167,23 +127,19 @@ public class Configuracion implements Serializable {
     }
 
     /**
-     * Obtiene el array completo de objetos de configuración de archivos de
-     * oferta.
+     * Gets the complete array of offer file configuration objects.
      *
-     * @return Array de {@link ArchivoOferta}.
+     * @return An array of {@link ArchivoOferta}.
      */
     public ArchivoOferta[] getArchivosOferta() {
         return archivosOferta;
     }
 
     /**
-     * Consulta si un archivo de oferta específico (por índice) es susceptible
-     * de ser declarado confidencial.
+     * Checks if a specific offer file (by index) is susceptible to being declared confidential.
      *
-     * @param index El índice del archivo dentro del array
-     * {@link #archivosOferta}.
-     * @return {@code true} si puede ser confidencial, {@code false} si no o si
-     * el índice es inválido.
+     * @param index The index of the file within the {@link #archivosOferta} array.
+     * @return {@code true} if it can be confidential, {@code false} if not or if the index is invalid.
      */
     public boolean puedeSerConfidencial(int index) {
         if (index >= 0 && index < archivosOferta.length) {
@@ -193,52 +149,40 @@ public class Configuracion implements Serializable {
     }
 
     /**
-     * Consulta si un archivo de oferta específico (por índice) es obligatorio.
+     * Checks if a specific offer file (by index) is mandatory.
      *
-     * @param indice El índice del archivo dentro del array
-     * {@link #archivosOferta}.
-     * @return {@code true} si es obligatorio, {@code false} en caso contrario.
+     * @param indice The index of the file within the {@link #archivosOferta} array.
+     * @return {@code true} if it is mandatory, {@code false} otherwise.
      */
     public boolean esOfertaObligatoria(int indice) {
         return archivosOferta[indice].esObligatorio;
     }
 
     /**
-     * Obtiene la lista de supuestos legales de confidencialidad predefinidos.
+     * Gets the list of predefined legal confidentiality assumptions.
      *
-     * @return Array de {@code String} con los supuestos.
+     * @return An array of {@code String} with the assumptions.
      */
     public String[] getSupuestosConfidencialidad() {
         return supuestosConfidencialidad;
     }
 
     /**
-     * Clase estática anidada que representa la configuración de un archivo de
-     * oferta individual. Es similar a {@link interfaz.models.ArchivoRequerido}
-     * pero específica para esta configuración.
+     * A static nested class that represents the configuration of an individual offer file.
+     * It is similar to {@code interfaz.models.ArchivoRequerido} but specific to this configuration.
      */
     public static class ArchivoOferta implements Serializable {
 
-        /**
-         * Nombre descriptivo del archivo de oferta.
-         */
         private final String nombre;
-        /**
-         * Indica si el archivo puede ser marcado como confidencial.
-         */
         private final boolean esConfidencial;
-        /**
-         * Indica si el archivo es de carga obligatoria.
-         */
         private final boolean esObligatorio;
 
         /**
-         * Constructor para un archivo de oferta.
+         * Constructor for an offer file.
          *
-         * @param nombre El nombre o descripción del archivo.
-         * @param esConfidencial Si el archivo es susceptible de
-         * confidencialidad.
-         * @param esObligatorio Si la carga del archivo es obligatoria.
+         * @param nombre The name or description of the file.
+         * @param esConfidencial If the file is susceptible to confidentiality.
+         * @param esObligatorio If the file upload is mandatory.
          */
         public ArchivoOferta(String nombre, boolean esConfidencial, boolean esObligatorio) {
             this.nombre = Objects.requireNonNull(nombre);
@@ -247,27 +191,27 @@ public class Configuracion implements Serializable {
         }
 
         /**
-         * Obtiene el nombre del archivo.
+         * Gets the name of the file.
          *
-         * @return El nombre.
+         * @return The name.
          */
         public String getNombre() {
             return nombre;
         }
 
         /**
-         * Consulta si el archivo es susceptible de ser declarado confidencial.
+         * Checks if the file is susceptible to being declared confidential.
          *
-         * @return {@code true} si es susceptible.
+         * @return {@code true} if it is susceptible.
          */
         public boolean esConfidencial() {
             return esConfidencial;
         }
 
         /**
-         * Consulta si el archivo es obligatorio.
+         * Checks if the file is mandatory.
          *
-         * @return {@code true} si es obligatorio.
+         * @return {@code true} if it is mandatory.
          */
         public boolean esObligatorio() {
             return esObligatorio;

@@ -8,14 +8,26 @@ import java.io.*;
 import java.util.*;
 import java.util.jar.*;
 
+/**
+ * Exports the application and its configuration data to a JAR file.
+ * This class is responsible for serializing the LicitacionData object and packaging it
+ * along with the necessary application classes and dependencies into a single executable JAR.
+ */
 public class JarExporter {
     
-    // CRÍTICO: Clase principal REAL de tu proyecto
+    // The main class of the application to be included in the JAR.
     private static final String MAIN_CLASS = "com.licitador.app.Ficheros";
     private final LicitacionData licitacionData; 
     private final String outputFilePath;
     private final Logger logger; 
     
+    /**
+     * Constructs a new JarExporter.
+     *
+     * @param licitacionData The LicitacionData object to be serialized and included in the JAR.
+     * @param outputFilePath The path to the output JAR file.
+     * @param logArea A JTextArea component for logging the export process.
+     */
     public JarExporter(LicitacionData licitacionData, String outputFilePath, JTextArea logArea) {
         this.licitacionData = licitacionData;
         this.outputFilePath = outputFilePath;
@@ -26,6 +38,13 @@ public class JarExporter {
     // LÓGICA DE EXPORTACIÓN (Basada en tu versión original)
     // =========================================================================
 
+    /**
+     * Exports the application and its data to a JAR file.
+     * This method creates a manifest file, serializes the LicitacionData object,
+     * and copies the application classes and dependencies to the JAR file.
+     *
+     * @throws Exception if an error occurs during the JAR creation process.
+     */
     public void exportJar() throws Exception {
         logger.logInfo("Comenzando la creación del archivo JAR en: " + outputFilePath);
 

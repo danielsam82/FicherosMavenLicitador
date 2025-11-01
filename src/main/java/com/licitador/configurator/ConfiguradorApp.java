@@ -15,13 +15,13 @@ import java.util.*;
 import java.util.List;
 
 /**
- * Clase principal de la aplicación Configurador, que proporciona una interfaz
- * gráfica (GUI) para definir los parámetros de una nueva licitación
- * (expediente, objeto, lotes, documentos requeridos y anexos administrativos).
+ * The main class of the Configurator application.
+ * It provides a graphical user interface (GUI) to define the parameters of a new tender,
+ * such as the file number, object, lots, required documents, and administrative annexes.
  */
 public class ConfiguradorApp extends JFrame {
 
-    // Componentes UI (Asegúrate que estas variables de campo coincidan con tus inicializaciones)
+    // UI Components
     private JTextArea txtAreaObjeto;
     private JTextField txtExpediente;
     private JRadioButton rbSiLotes, rbNoLotes;
@@ -43,8 +43,8 @@ public class ConfiguradorApp extends JFrame {
     private Logger logger;
 
     /**
-     * Constructor principal de la aplicación Configurador. Inicializa los
-     * componentes y configura la interfaz de usuario.
+     * Constructs the main application window.
+     * Initializes the UI components and sets up the user interface.
      */
     public ConfiguradorApp() {
         initComponents();
@@ -531,7 +531,9 @@ public class ConfiguradorApp extends JFrame {
     }
 
     /**
-     * Método principal (main) para iniciar la aplicación Configurador.
+     * The main entry point for the Configurator application.
+     *
+     * @param args Command line arguments (not used).
      */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {

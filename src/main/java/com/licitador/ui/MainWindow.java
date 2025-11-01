@@ -38,9 +38,12 @@ import javax.swing.event.TableModelEvent;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
+/**
+ * The main window of the application.
+ */
 public class MainWindow extends JFrame {
 
-    // Componentes UI
+    // UI Components
     private JButton cargarArchivosComunesButton;
     private JButton cargarOfertasButton;
     private JButton comprimirButton;
@@ -80,8 +83,10 @@ public class MainWindow extends JFrame {
     private Configuracion configuracion;
     private Logger logger;
 
+    /**
+     * Constructs the main window of the application.
+     */
     public MainWindow() {
-        // La inicialización de componentes incluye la creación de los nuevos JTextField
         inicializarComponentes();
 
         this.logger = new TextAreaLogger(logArea);
@@ -113,13 +118,13 @@ public class MainWindow extends JFrame {
 
     // --- MÉTODOS ADAPTADOS O NUEVOS PARA LICITADORDATA ---
     /**
-     * Carga los datos desde LicitadorData a los campos de la UI. Llamar al
-     * iniciar y al cargar sesión.
+     * Loads the data from LicitadorData into the UI fields.
+     * Call this when starting and when loading a session.
      */
     private void cargarDatosLicitadorUI() {
         LicitadorData data = fileManager.getLicitadorData();
 
-        // Campos de texto
+        // Text fields
         razonSocialField.setText(data.getRazonSocial() != null ? data.getRazonSocial() : "");
         nifField.setText(data.getNif() != null ? data.getNif() : "");
         domicilioField.setText(data.getDomicilio() != null ? data.getDomicilio() : "");
@@ -148,28 +153,33 @@ public class MainWindow extends JFrame {
         logger.log("Datos del licitador cargados en la interfaz.");
     }
 
-// En MainWindow.java, modificar el método (debe ser public)
+    /**
+     * Saves the bidder's data.
+     * @param razonSocial The company name.
+     * @param nif The tax ID.
+     * @param domicilio The address.
+     * @param email The email.
+     * @param telefono The phone number.
+     * @param esPyme Whether the company is an SME.
+     * @param esExtranjera Whether the company is foreign.
+     * @param lotesModel The table model for the lots.
+     */
     public void guardarDatosLicitador(
             String razonSocial, String nif, String domicilio, String email, String telefono,
             boolean esPyme, boolean esExtranjera, DefaultTableModel lotesModel) {
 
-        // 1. Guardar campos de texto en el FileManager
         fileManager.getLicitadorData().setRazonSocial(razonSocial);
         fileManager.getLicitadorData().setNif(nif);
         fileManager.getLicitadorData().setDomicilio(domicilio);
         fileManager.getLicitadorData().setEmail(email);
         fileManager.getLicitadorData().setTelefono(telefono);
 
-        // 2. Guardar Radio Buttons (PYME y Extranjera) <-- SOLUCIONA ERROR DE DATOS
         fileManager.getLicitadorData().setEsPyme(esPyme);
         fileManager.getLicitadorData().setEsExtranjera(esExtranjera);
 
-        // 3. Sincronizar el estado de participación de lotes desde el MODELO DEL DIÁLOGO.
         if (configuracion.isTieneLotes() && lotesModel != null) {
             Set<String> lotesElegidosIds = new HashSet<>();
-            // Iterar sobre el modelo de lotes que viene del diálogo
             for (int i = 0; i < lotesModel.getRowCount(); i++) {
-                // CRÍTICO: El orden en el diálogo es [ID Lote (0), Descripción (1), Participa (2)]
                 String idLote = (String) lotesModel.getValueAt(i, 0);
                 String participa = (String) lotesModel.getValueAt(i, 2);
 
@@ -179,95 +189,73 @@ public class MainWindow extends JFrame {
             }
             fileManager.setParticipacionDesdeUI(lotesElegidosIds);
         }
-        logger.log("Datos del licitador y selección de lotes guardados en el modelo interno.");
+        logger.log("Bidder data and lot selection saved to the internal model.");
 
-        // 4. Actualizar la UI de la MainWindow (campos de texto/radio buttons)
-        // Esto es crucial para que los cambios se vean en la ventana principal
         cargarDatosLicitadorUI();
     }
 
     /**
-     * Valida que los campos obligatorios del licitador (incluyendo Email y
-     * Teléfono) estén llenos y con formato correcto.
-     *
-     * @return true si la validación es exitosa.
+     * Validates that the mandatory bidder fields (including Email and Phone) are filled and correctly formatted.
+     * @return true if the validation is successful.
      */
     public boolean validarDatosLicitador() {
 
-        // 🔥 ELIMINAR ESTA LÍNEA: guardarDatosLicitador(); 
         LicitadorData data = fileManager.getLicitadorData();
 
-        // --- 1. VALIDACIONES DE OBLIGATORIEDAD DE CAMPOS DE TEXTO ---
         if (data.getRazonSocial().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "La Razón Social es requerida. Por favor, rellene este campo.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
-            // 🔥 ELIMINAR ESTO: razonSocialField.requestFocus();
+            JOptionPane.showMessageDialog(this, "Company Name is required. Please fill in this field.", "Validation Error", JOptionPane.ERROR_MESSAGE);
             return false;
         }
 
         if (data.getNif().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "El NIF/CIF es un campo obligatorio para la identificación.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
-            // 🔥 ELIMINAR ESTO: nifField.requestFocus();
+            JOptionPane.showMessageDialog(this, "The NIF/CIF is a mandatory identification field.", "Validation Error", JOptionPane.ERROR_MESSAGE);
             return false;
         }
 
         if (data.getDomicilio().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "El Domicilio es obligatorio.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
-            // 🔥 ELIMINAR ESTO: domicilioField.requestFocus();
+            JOptionPane.showMessageDialog(this, "Address is mandatory.", "Validation Error", JOptionPane.ERROR_MESSAGE);
             return false;
         }
 
         if (data.getTelefono().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "El Teléfono es obligatorio.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
-            // 🔥 ELIMINAR ESTO: telefonoField.requestFocus();
+            JOptionPane.showMessageDialog(this, "Phone is mandatory.", "Validation Error", JOptionPane.ERROR_MESSAGE);
             return false;
         }
 
         if (data.getEmail().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "El Email es obligatorio para notificaciones. Por favor, rellene este campo.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
-            // 🔥 ELIMINAR ESTO: emailField.requestFocus();
+            JOptionPane.showMessageDialog(this, "Email is mandatory for notifications. Please fill in this field.", "Validation Error", JOptionPane.ERROR_MESSAGE);
             return false;
         }
 
-        // --- 2. VALIDACIÓN DE OBLIGATORIEDAD DE CLASIFICACIÓN (RESPUESTA SÍ/NO) ---
-        // (Se asume que los booleanos esPyme/esExtranjera en LicitadorData están correctamente establecidos
-        // y no requieren validación de "null", solo se revisa obligatoriedad en campos de texto).
-        // --- 3. VALIDACIÓN DE FORMATO ---
         if (!data.getTelefono().matches("\\d{9}")) {
-            JOptionPane.showMessageDialog(this, "El Teléfono debe contener exactamente 9 dígitos numéricos.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
-            // 🔥 ELIMINAR ESTO: telefonoField.requestFocus();
+            JOptionPane.showMessageDialog(this, "The Phone must contain exactly 9 numeric digits.", "Format Error", JOptionPane.ERROR_MESSAGE);
             return false;
         }
 
         if (!data.getEmail().matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$")) {
-            JOptionPane.showMessageDialog(this, "El formato del Email no es válido.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
-            // 🔥 ELIMINAR ESTO: emailField.requestFocus();
+            JOptionPane.showMessageDialog(this, "The Email format is not valid.", "Validation Error", JOptionPane.ERROR_MESSAGE);
             return false;
         }
 
-        return true; // ¡Todo validado!
+        return true;
     }
 
     /**
-     * Muestra el diálogo que permite al usuario configurar los datos iniciales
-     * del licitador y la participación en lotes.
+     * Displays the dialog that allows the user to configure the initial data of the bidder and the participation in lots.
      */
     private void mostrarConfiguracionInicialDialog() {
-        // Asegúrate de que tienes una clase ConfiguracionInicialDialog creada.
         ConfiguracionInicialDialog dialog = new ConfiguracionInicialDialog(this, fileManager, configuracion);
         dialog.setVisible(true);
 
-        // Al volver del diálogo, recargamos los datos y actualizamos las tablas
         cargarDatosLicitadorUI();
     }
 
-    // Añadir este método a MainWindow.java
     /**
-     * Transfiere los datos de LicitadorData y el modelo de lotes desde el
-     * diálogo temporal a los componentes de la MainWindow y actualiza el modelo
-     * interno (FileManager).
+     * Transfers the LicitadorData and the lot model from the temporary dialog to the MainWindow components and updates the internal model (FileManager).
+     * @param data The LicitadorData object.
+     * @param lotesModel The table model for the lots.
      */
     public void actualizarComponentesYModeloDesdeDialogo(LicitadorData data, DefaultTableModel lotesModel) {
-        // 1. Actualizar los componentes UI de la MainWindow con los datos del diálogo
         razonSocialField.setText(data.getRazonSocial());
         nifField.setText(data.getNif());
         domicilioField.setText(data.getDomicilio());
@@ -275,21 +263,17 @@ public class MainWindow extends JFrame {
         telefonoField.setText(data.getTelefono());
 
         pymeSiRadio.setSelected(data.esPyme());
-        pymeNoRadio.setSelected(!data.esPyme()); // Es importante asegurar que el otro esté deseleccionado
+        pymeNoRadio.setSelected(!data.esPyme());
         extranjeraSiRadio.setSelected(data.esExtranjera());
         extranjeraNoRadio.setSelected(!data.esExtranjera());
 
-        // 2. Sincronizar la tabla de lotes de MainWindow
         if (configuracion.isTieneLotes() && lotesModel != null) {
             lotesTable.setModel(lotesModel);
-            // CRÍTICO: Debemos configurar el Cell Editor de la nueva tabla
             TableColumn participaColumn = lotesTable.getColumnModel().getColumn(2);
             JComboBox<String> comboBox = new JComboBox<>(new String[]{"Sí", "No"});
             participaColumn.setCellEditor(new DefaultCellEditor(comboBox));
         }
 
-        // NOTA: El LicitadorData en FileManager se actualizará completamente 
-        // cuando se llame a guardarDatosLicitador() desde validarDatosLicitador().
     }
 
     // --- FIN MÉTODOS ADAPTADOS O NUEVOS PARA LICITADORDATA ---
@@ -1355,11 +1339,17 @@ public class MainWindow extends JFrame {
         }
     }
 
-    public void actualizarTablas() { // CLAVE: Cambiar a public
+    /**
+     * Updates the tables in the main window.
+     */
+    public void actualizarTablas() {
         actualizarTablaArchivosComunes();
         actualizarTablaLotes();
     }
 
+    /**
+     * Updates the tables to their initial state.
+     */
     public void actualizarTablasIniciales() {
         actualizarTablaArchivosComunes();
         actualizarTablaLotes();
@@ -1854,9 +1844,9 @@ public class MainWindow extends JFrame {
     }
 
     /**
-     * Intenta eliminar la carpeta temporal "temp" y todo su contenido. Se llama
-     * típicamente al cerrar la aplicación para limpiar los archivos temporales.
-     * Si ocurre un error durante la eliminación, lo registra.
+     * Attempts to delete the temporary "temp" folder and all its contents.
+     * This is typically called when closing the application to clean up temporary files.
+     * If an error occurs during deletion, it is logged.
      */
     public void eliminarCarpetaTemp() {
         try {
@@ -1866,39 +1856,32 @@ public class MainWindow extends JFrame {
                         .sorted(Comparator.reverseOrder())
                         .map(Path::toFile)
                         .forEach(File::delete);
-                logger.log("Carpeta temporal 'temp' eliminada.");
+                logger.log("Temporary folder 'temp' deleted.");
             }
         } catch (IOException e) {
-            logger.logError("Error al eliminar la carpeta temporal: " + e.getMessage());
+            logger.logError("Error deleting temporary folder: " + e.getMessage());
         }
     }
 
     /**
-     * Expone la instancia de FileManager (gestor de archivos y datos de
-     * licitación) para que pueda ser utilizada por clases externas como los
-     * diálogos.
-     *
-     * @return La instancia de FileManager.
+     * Exposes the FileManager instance (file and tender data manager) so that it can be used by external classes such as dialogs.
+     * @return The FileManager instance.
      */
     public FileManager getFileManager() {
         return fileManager;
     }
 
     /**
-     * Expone la instancia de Logger (gestor de registros de eventos).
-     *
-     * @return La instancia de Logger.
+     * Exposes the Logger instance (event log manager).
+     * @return The Logger instance.
      */
     public Logger getLogger() {
         return logger;
     }
 
     /**
-     * Punto de entrada principal para la aplicación. Inicializa la interfaz de
-     * usuario en el Event Dispatch Thread (EDT) para asegurar la seguridad de
-     * los hilos en Swing.
-     *
-     * @param args Argumentos de la línea de comandos (no utilizados).
+     * The main entry point for the application. Initializes the user interface on the Event Dispatch Thread (EDT) to ensure thread safety in Swing.
+     * @param args Command line arguments (not used).
      */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new MainWindow().setVisible(true));

@@ -15,34 +15,24 @@ import java.util.stream.Collectors;
 import java.util.Objects;
 
 /**
- * Diálogo modal que muestra los detalles de los archivos de oferta.
- * Puede operar en dos modos:
+ * A modal dialog that displays the details of the offer files.
+ * It can operate in two modes:
  * <ul>
- * <li>Vista por lote: Muestra los archivos de oferta esperados y su estado para un lote específico.</li>
- * <li>Vista global: Muestra todos los archivos de oferta que han sido cargados en cualquier lote
- * (o en la oferta única) con sus detalles.</li>
+ * <li>Lot view: Shows the expected offer files and their status for a specific lot.</li>
+ * <li>Global view: Shows all the offer files that have been loaded in any lot
+ * (or in the single offer) with their details.</li>
  * </ul>
- * Utiliza un renderizador de celdas personalizado para colorear el estado de carga.
+ * It uses a custom cell renderer to color the loading status.
  */
 public class DetalleOfertasDialog extends JDialog {
 
-    /**
-     * Referencia al {@link FileManager} para acceder a los datos de los archivos cargados.
-     */
     private final FileManager fileManager;
-    /**
-     * Referencia al objeto {@link Configuracion} de la licitación.
-     */
     private final Configuracion configuracion;
-    /**
-     * El número del lote para el que se muestran los detalles.
-     * Un valor de {@code -1} indica el modo de vista global (todos los archivos cargados).
-     */
     private final int numeroLote;
 
     /**
-     * Renderizador de celda personalizado para la columna "Estado" de la tabla.
-     * Asigna colores de fondo a las celdas según el estado del archivo (Cargado, Parcialmente cargado, No cargado).
+     * A custom cell renderer for the "Status" column of the table.
+     * It assigns background colors to the cells according to the file status (Loaded, Partially loaded, Not loaded).
      */
     private class EstadoCellRenderer extends DefaultTableCellRenderer {
         @Override
@@ -52,13 +42,12 @@ public class DetalleOfertasDialog extends JDialog {
             String estado = (String) value;
             Color colorFondo;
 
-            // Lógica de color de fondo según el estado
-            if (estado.equals("Cargado")) {
-                colorFondo = new Color(144, 238, 144); // Verde claro
-            } else if (estado.equals("Parcialmente cargado")) {
-                colorFondo = new Color(255, 255, 153); // Amarillo claro
-            } else { // "No cargado" o cualquier otro estado no reconocido
-                colorFondo = new Color(255, 182, 193); // Rojo claro
+            if (estado.equals("Loaded")) {
+                colorFondo = new Color(144, 238, 144);
+            } else if (estado.equals("Partially loaded")) {
+                colorFondo = new Color(255, 255, 153);
+            } else {
+                colorFondo = new Color(255, 182, 193);
             }
 
             if (isSelected) {
@@ -74,71 +63,60 @@ public class DetalleOfertasDialog extends JDialog {
     }
 
     /**
-     * Constructor para crear e inicializar el diálogo de detalles de ofertas.
+     * Constructor to create and initialize the offer details dialog.
      *
-     * @param owner La ventana padre {@code JFrame} de este diálogo.
-     * @param fileManager El gestor de archivos para obtener los datos de la licitación.
-     * @param configuracion El objeto de configuración de la licitación.
-     * @param numeroLote El número del lote a mostrar. Usar {@code -1} para una vista global de todos los archivos cargados.
+     * @param owner The parent {@code JFrame} of this dialog.
+     * @param fileManager The file manager to get the tender data.
+     * @param configuracion The tender configuration object.
+     * @param numeroLote The lot number to display. Use {@code -1} for a global view of all loaded files.
      */
     public DetalleOfertasDialog(JFrame owner, FileManager fileManager, Configuracion configuracion, int numeroLote) {
 
-        // La llamada a super() debe ser la PRIMERA declaración ejecutable del constructor.
         super(owner, calcularTitulo(configuracion, numeroLote), true);
 
-        // Asignación de variables de instancia (DESPUÉS de super())
         this.fileManager = fileManager;
         this.configuracion = configuracion;
         this.numeroLote = numeroLote;
 
-        // Configuración de la ventana
         setLayout(new BorderLayout());
         setSize(800, 500);
         setResizable(true);
         setLocationRelativeTo(owner);
 
-        // Panel principal con margen y color de fondo
         JPanel mainPanel = new JPanel(new BorderLayout(15, 15));
         mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
         mainPanel.setBackground(Color.WHITE);
 
-        // Crear la tabla de detalles con un modelo de tabla por defecto
-        String[] columnNames = {"Archivo", "Obligatorio", "Confidencial", "Estado", "Supuestos Confidencialidad"};
+        String[] columnNames = {"File", "Mandatory", "Confidential", "Status", "Confidentiality Assumptions"};
         DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Las celdas no son editables en este diálogo de detalle
+                return false;
             }
         };
         JTable detalleTable = new JTable(tableModel);
-        detalleTable.setRowHeight(25); // Altura de fila para mejor legibilidad
+        detalleTable.setRowHeight(25);
         detalleTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         detalleTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        detalleTable.setFillsViewportHeight(true); // Ocupar todo el espacio disponible
+        detalleTable.setFillsViewportHeight(true);
 
-        // Aplicar el renderizador de estado a la columna "Estado" (índice 3)
         detalleTable.getColumnModel().getColumn(3).setCellRenderer(new EstadoCellRenderer());
         
-        // Ajustar anchos de columna iniciales
-        detalleTable.getColumnModel().getColumn(0).setPreferredWidth(250); // Archivo
-        detalleTable.getColumnModel().getColumn(1).setPreferredWidth(70);  // Obligatorio
-        detalleTable.getColumnModel().getColumn(2).setPreferredWidth(80);  // Confidencial
-        detalleTable.getColumnModel().getColumn(3).setPreferredWidth(100); // Estado
-        detalleTable.getColumnModel().getColumn(4).setPreferredWidth(300); // Supuestos
+        detalleTable.getColumnModel().getColumn(0).setPreferredWidth(250);
+        detalleTable.getColumnModel().getColumn(1).setPreferredWidth(70);
+        detalleTable.getColumnModel().getColumn(2).setPreferredWidth(80);
+        detalleTable.getColumnModel().getColumn(3).setPreferredWidth(100);
+        detalleTable.getColumnModel().getColumn(4).setPreferredWidth(300);
 
-        // La tabla debe estar en un JScrollPane
         JScrollPane scrollPane = new JScrollPane(detalleTable);
 
-        // Añadir el JScrollPane al panel principal
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        // Llenar la tabla con los datos correspondientes al lote o la vista global
         llenarTablaDetalles(tableModel);
 
-        // Botón de cerrar y configuración final
-        JButton closeButton = new JButton("Cerrar");
+        JButton closeButton = new JButton("Close");
         closeButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        closeButton.setBackground(new Color(200, 220, 240)); // Color azul claro
+        closeButton.setBackground(new Color(200, 220, 240));
         closeButton.setForeground(Color.BLACK);
         closeButton.setFocusPainted(false);
         closeButton.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
@@ -146,18 +124,14 @@ public class DetalleOfertasDialog extends JDialog {
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(closeButton);
-        buttonPanel.setOpaque(false); // Para que se vea el color de fondo del mainPanel
+        buttonPanel.setOpaque(false);
 
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         add(mainPanel, BorderLayout.CENTER);
         
-        // Empaquetar y mostrar
-        pack(); // Ajusta el tamaño de la ventana a sus componentes preferidos
-        // Aunque pack ajusta el tamaño, se puede volver a establecer un tamaño fijo si es preferible
-        // Esto puede ser útil si se quiere asegurar un tamaño mínimo o una apariencia consistente.
-        // setSize(800, 500); // Descomentar si se prefiere un tamaño fijo después de pack.
-        setVisible(true); // Hacer el diálogo visible.
+        pack();
+        setVisible(true);
     }
 
     /**

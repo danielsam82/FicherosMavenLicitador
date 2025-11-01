@@ -17,12 +17,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Diálogo modal para cargar archivos de oferta. Permite al usuario seleccionar
- * el documento y, opcionalmente, el lote al que pertenece, y cargarlo a través
- * de {@link FileManager}.
+ * A modal dialog for loading offer files. It allows the user to select the document
+ * and, optionally, the lot to which it belongs, and upload it through the {@link FileManager}.
  * <p>
- * Gestiona la selección del archivo, la lógica de asignación de lotes y el
- * manejo de la confidencialidad de los documentos.
+ * It manages the file selection, the logic of lot assignment, and the handling
+ * of document confidentiality.
  * </p>
  *
  * @see FileManager
@@ -31,77 +30,38 @@ import java.util.stream.Collectors;
  */
 public class CargarOfertaDialog extends JDialog {
 
-    /**
-     * ComboBox para seleccionar el tipo de documento de oferta a cargar (ej:
-     * "Oferta Económica").
-     */
     private final JComboBox<String> ofertaComboBox;
-    /**
-     * ComboBox opcional para seleccionar el lote, visible solo si la
-     * configuración indica lotes.
-     */
     private JComboBox<String> loteComboBox;
-    /**
-     * Gestor de archivos para realizar la operación de carga.
-     */
     private final FileManager fileManager;
-    /**
-     * Objeto de configuración que contiene la lista de archivos de oferta
-     * requeridos.
-     */
     private final Configuracion configuracion;
-    /**
-     * Modelo de datos para la tabla de detalles.
-     */
     private final DefaultTableModel tableModel;
-    /**
-     * Tabla que muestra el estado de carga de los archivos de oferta.
-     */
     private final JTable detalleTable;
-    /**
-     * Etiqueta de título de la tabla de detalles que se actualiza con el lote
-     * actual.
-     */
     private final JLabel detallesLabel;
 
-    // Variables internas de estado
-    /**
-     * El identificador del lote actualmente seleccionado (0 para Oferta Única /
-     * sin lotes).
-     */
     private int numeroLote;
-    /**
-     * Mapa de lotes seleccionados por el usuario, donde la clave es el ID del
-     * lote y el valor es el nombre.
-     */
     private Map<Integer, String> lotesElegidos;
-    /**
-     * Indica si la lógica y el ComboBox de selección de lote están activos.
-     */
     private final boolean mostrarLoteComboBox;
 
     /**
-     * Constructor para el **MODO SIN LOTES** (Oferta Única). Llama al
-     * constructor principal pasando un mapa que representa el Lote 0.
+     * Constructor for the **NO LOTS MODE** (Single Offer). It calls the main
+     * constructor passing a map that represents Lot 0.
      *
-     * @param parent La ventana padre del diálogo.
-     * @param fileManager El gestor de archivos.
-     * @param configuracion La configuración del procedimiento.
+     * @param parent The parent window of the dialog.
+     * @param fileManager The file manager.
+     * @param configuracion The procedure's configuration.
      */
     public CargarOfertaDialog(Frame parent, FileManager fileManager, Configuracion configuracion) {
-        // Llama al constructor completo, pasándole el mapa de Oferta Única.
-        this(parent, fileManager, configuracion, Collections.singletonMap(0, "Oferta Única"));
+        this(parent, fileManager, configuracion, Collections.singletonMap(0, "Single Offer"));
     }
 
     /**
-     * Constructor principal para el **MODO CON/SIN LOTES**.
+     * Main constructor for the **WITH/WITHOUT LOTS MODE**.
      *
-     * @param parent La ventana padre del diálogo.
-     * @param fileManager El gestor de archivos.
-     * @param configuracion La configuración del procedimiento.
-     * @param lotesElegidos Mapa con los lotes seleccionados, donde la clave es
-     * el ID del lote y el valor es el nombre. En modo sin lotes, contiene solo
-     * {0: "Oferta Única"}.
+     * @param parent The parent window of the dialog.
+     * @param fileManager The file manager.
+     * @param configuracion The procedure's configuration.
+     * @param lotesElegidos A map with the selected lots, where the key is the
+     * lot ID and the value is the name. In no-lot mode, it only contains {0: "Single Offer"}.
      */
     public CargarOfertaDialog(Frame parent, FileManager fileManager, Configuracion configuracion, Map<Integer, String> lotesElegidos) {
         super(parent, "Cargar Archivo de Oferta", true);
@@ -112,21 +72,16 @@ public class CargarOfertaDialog extends JDialog {
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         setResizable(true);
 
-        // LÓGICA CLAVE DE VISIBILIDAD Y ESTADO:
-        // Se considera que tiene lotes si la configuración lo dice Y el mapa tiene más que solo el Lote 0.
         this.mostrarLoteComboBox = configuracion.isTieneLotes() && (lotesElegidos.size() > 1 || !lotesElegidos.containsKey(0));
 
         if (this.mostrarLoteComboBox) {
             this.lotesElegidos = lotesElegidos;
-            // Inicializamos el lote activo al primer lote seleccionado
             this.numeroLote = lotesElegidos.keySet().iterator().next();
         } else {
-            // Caso SIN LOTES: forzamos Lote 0 y el mapa de Oferta Única
-            this.lotesElegidos = Collections.singletonMap(0, "Oferta Única");
+            this.lotesElegidos = Collections.singletonMap(0, "Single Offer");
             this.numeroLote = 0;
         }
 
-        // --- RESTO DEL CUERPO DEL CONSTRUCTOR (GUI) ---
         JPanel panelPrincipal = new JPanel(new GridBagLayout());
         panelPrincipal.setBorder(new EmptyBorder(15, 15, 15, 15));
         GridBagConstraints gbc = new GridBagConstraints();
@@ -136,7 +91,6 @@ public class CargarOfertaDialog extends JDialog {
 
         int row = 0;
 
-        // Lógica condicional para la instrucción
         String instruccion;
         if (this.mostrarLoteComboBox) {
             instruccion = "<html><b>Seleccione lote, documento y posteriormente cargue el Archivo</b></html>";
@@ -144,7 +98,6 @@ public class CargarOfertaDialog extends JDialog {
             instruccion = "<html><b>Seleccione documento y posteriormente cargue el Archivo</b></html>";
         }
 
-        // Título principal
         JLabel instruccionLabel = new JLabel(instruccion);
         instruccionLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         gbc.gridx = 0;
@@ -153,26 +106,21 @@ public class CargarOfertaDialog extends JDialog {
         gbc.anchor = GridBagConstraints.WEST;
         panelPrincipal.add(instruccionLabel, gbc);
 
-        // Espaciador
         gbc.gridx = 0;
         gbc.gridy = row++;
         gbc.gridwidth = 4;
         panelPrincipal.add(Box.createVerticalStrut(10), gbc);
 
-        // Controles de selección de lote
         if (this.mostrarLoteComboBox) {
             JLabel loteLabel = new JLabel("Lote:");
 
-            // Llenamos con los lotes seleccionados
             String[] lotesNombres = lotesElegidos.values().toArray(new String[0]);
             loteComboBox = new JComboBox<>(lotesNombres);
             loteComboBox.setPreferredSize(new Dimension(80, loteComboBox.getPreferredSize().height));
 
-            // Listener para actualizar la tabla al cambiar el lote y ACTUALIZAR numeroLote
             loteComboBox.addActionListener(e -> {
                 String nombreLoteSeleccionado = (String) loteComboBox.getSelectedItem();
 
-                // Mapear el nombre del lote al número de lote
                 this.numeroLote = lotesElegidos.entrySet().stream()
                         .filter(entry -> entry.getValue().equals(nombreLoteSeleccionado))
                         .map(Map.Entry::getKey)
@@ -186,7 +134,6 @@ public class CargarOfertaDialog extends JDialog {
                 }
             });
 
-            // Alineación de Lote
             gbc.gridx = 0;
             gbc.gridy = row;
             gbc.gridwidth = 1;
@@ -204,10 +151,8 @@ public class CargarOfertaDialog extends JDialog {
             loteComboBox = null;
         }
 
-        // Controles de selección de Documento
         JLabel ofertaLabel = new JLabel("Documento a cargar:");
 
-        // Inicialización a prueba de fallos extrema (Blindaje)
         String[] nombresOfertas;
         try {
             nombresOfertas = configuracion.getNombresArchivosOfertas();
@@ -222,7 +167,6 @@ public class CargarOfertaDialog extends JDialog {
         ofertaComboBox = new JComboBox<>(nombresOfertas);
         ofertaComboBox.setPrototypeDisplayValue("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
 
-        // Alineación de Documento
         gbc.gridx = this.mostrarLoteComboBox ? 2 : 0;
         gbc.gridy = row;
         gbc.gridwidth = 1;
@@ -239,7 +183,6 @@ public class CargarOfertaDialog extends JDialog {
 
         row++;
 
-        // Botones de acción
         JButton seleccionarArchivoButton = new JButton("Seleccionar Archivo y Cargar Documento");
         seleccionarArchivoButton.setIcon(UIManager.getIcon("FileView.floppyDriveIcon"));
         seleccionarArchivoButton.setHorizontalTextPosition(SwingConstants.RIGHT);
@@ -248,7 +191,6 @@ public class CargarOfertaDialog extends JDialog {
         JButton cerrarButton = new JButton("Finalizar y Cerrar");
         cerrarButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
-        // Panel de botones
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         buttonPanel.add(seleccionarArchivoButton);
         buttonPanel.add(cerrarButton);
@@ -260,7 +202,6 @@ public class CargarOfertaDialog extends JDialog {
         gbc.fill = GridBagConstraints.NONE;
         panelPrincipal.add(buttonPanel, gbc);
 
-        // Espaciador y Título para la tabla de detalles
         gbc.gridx = 0;
         gbc.gridy = row++;
         gbc.gridwidth = 4;
@@ -276,8 +217,7 @@ public class CargarOfertaDialog extends JDialog {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panelPrincipal.add(detallesLabel, gbc);
 
-        // Creación y configuración de la tabla
-        String[] columnNames = {"Archivo", "Obligatorio", "Confidencial", "Estado", "Supuestos Confidencialidad"};
+        String[] columnNames = {"File", "Mandatory", "Confidential", "Status", "Confidentiality Assumptions"};
         tableModel = new DefaultTableModel(columnNames, 0);
         detalleTable = new JTable(tableModel);
 
@@ -310,31 +250,28 @@ public class CargarOfertaDialog extends JDialog {
         gbc.weighty = 1.0;
         panelPrincipal.add(scrollPane, gbc);
 
-        // Lógica para el evento de carga del archivo
         seleccionarArchivoButton.addActionListener(e -> {
             String nombreOfertaSeleccionada = (String) ofertaComboBox.getSelectedItem();
 
             if (nombreOfertaSeleccionada == null || nombreOfertaSeleccionada.startsWith("ERROR:")) {
-                JOptionPane.showMessageDialog(this, "Debe seleccionar un documento válido de la lista. Revise su configuración de ofertas.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "You must select a valid document from the list. Check your offer configuration.", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            // CLAVE 1: Obtener el prefijo de clave para el lote seleccionado (ej: "Lote3_" o "")
             String loteKeyPrefix = getLoteKeyPrefix();
 
-            // Validación solo si el ComboBox está visible y se requiere selección
             if (this.mostrarLoteComboBox && loteKeyPrefix.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Debe seleccionar un lote.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "You must select a lot.", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             JFileChooser fileChooser = new JFileChooser();
-            String title = "Seleccionar archivo para: " + nombreOfertaSeleccionada;
+            String title = "Select file for: " + nombreOfertaSeleccionada;
 
             if (this.mostrarLoteComboBox && loteComboBox != null && loteComboBox.getSelectedItem() != null) {
                 title += " (" + loteComboBox.getSelectedItem() + ")";
             } else if (!this.mostrarLoteComboBox) {
-                title += " (Oferta Única)";
+                title += " (Single Offer)";
             }
             fileChooser.setDialogTitle(title);
 
@@ -342,7 +279,6 @@ public class CargarOfertaDialog extends JDialog {
             if (userSelection == JFileChooser.APPROVE_OPTION) {
                 File archivoSeleccionado = fileChooser.getSelectedFile();
 
-                // Lógica de Confidencialidad
                 boolean esConfidencial = false;
                 String[] supuestosSeleccionados = null;
                 String[] motivosSupuestos = null;
@@ -353,12 +289,11 @@ public class CargarOfertaDialog extends JDialog {
 
                 if (ofertaConfOptional.isPresent() && ofertaConfOptional.get().esConfidencial()) {
                     int respuestaConfidencial = JOptionPane.showConfirmDialog(
-                            this, "El archivo '" + nombreOfertaSeleccionada + "' puede ser confidencial. ¿Desea marcarlo como tal?",
-                            "Confidencialidad del Archivo", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE
+                            this, "The file '" + nombreOfertaSeleccionada + "' can be confidential. Do you want to mark it as such?",
+                            "File Confidentiality", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE
                     );
 
                     if (respuestaConfidencial == JOptionPane.YES_OPTION) {
-                        // Se asume que ConfidencialidadDialog es accesible
                         ConfidencialidadDialog confidencialidadDialog = new ConfidencialidadDialog(CargarOfertaDialog.this, configuracion.getSupuestosConfidencialidad());
                         confidencialidadDialog.setVisible(true);
 
@@ -368,7 +303,7 @@ public class CargarOfertaDialog extends JDialog {
                             supuestosSeleccionados = seleccionConfidencialidad.keySet().toArray(new String[0]);
                             motivosSupuestos = seleccionConfidencialidad.values().toArray(new String[0]);
                             if (supuestosSeleccionados.length == 0) {
-                                JOptionPane.showMessageDialog(CargarOfertaDialog.this, "Debe seleccionar al menos un supuesto de confidencialidad y una motivación.", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                                JOptionPane.showMessageDialog(CargarOfertaDialog.this, "You must select at least one confidentiality assumption and a reason.", "Warning", JOptionPane.WARNING_MESSAGE);
                                 return;
                             }
                         } else {
@@ -377,15 +312,13 @@ public class CargarOfertaDialog extends JDialog {
                     }
                 }
 
-                // CLAVE 2: Llamada al FileManager
                 if (fileManager.cargarArchivoOferta(nombreOfertaSeleccionada, archivoSeleccionado, loteKeyPrefix, esConfidencial, supuestosSeleccionados, motivosSupuestos)) {
-                    JOptionPane.showMessageDialog(CargarOfertaDialog.this, "Archivo de oferta cargado correctamente.", "Carga exitosa", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(CargarOfertaDialog.this, "Offer file loaded successfully.", "Load successful", JOptionPane.INFORMATION_MESSAGE);
                     llenarTablaDetalles();
                     if (getParent() instanceof MainWindow) {
                         ((MainWindow) getParent()).actualizarTablas();
                     }
                 } else {
-                    // El FileManager ya maneja los mensajes de error
                 }
             }
         });
@@ -394,7 +327,6 @@ public class CargarOfertaDialog extends JDialog {
 
         add(panelPrincipal, BorderLayout.CENTER);
 
-        // Carga inicial de la tabla
         llenarTablaDetalles();
         actualizarTituloTabla();
 

@@ -6,43 +6,38 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Servicio para gestionar la persistencia (carga y guardado) de la lista maestra
- * de ArticulosAnexo en un archivo binario.
+ * A service to manage the persistence (loading and saving) of the master list
+ * of ArticulosAnexo in a binary file.
  */
 public class ArticuloAnexoService {
 
-    // CAMBIO: Nombre del archivo de persistencia actualizado
     private static final String FILE_NAME = "master_articulos.dat"; 
 
     /**
-     * Carga la lista de artículos desde el archivo de persistencia.
-     * @return Una lista de ArticuloAnexo; lista vacía si falla o no existe el archivo.
+     * Loads the list of articles from the persistence file.
+     * @return A list of ArticuloAnexo; an empty list if it fails or the file does not exist.
      */
     @SuppressWarnings("unchecked")
     public List<ArticuloAnexo> cargarArticulos() {
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(FILE_NAME))) {
-            // Se asume que el objeto leído es una lista de ArticuloAnexo
             return (List<ArticuloAnexo>) ois.readObject();
         } catch (FileNotFoundException e) {
-            // Es normal que el archivo no exista la primera vez.
-            System.out.println("Archivo de artículos no encontrado. Creando lista vacía.");
+            System.out.println("Article file not found. Creating empty list.");
             return new ArrayList<>();
         } catch (IOException | ClassNotFoundException e) {
-            // Otros errores de I/O o deserialización.
             e.printStackTrace();
-            // Devolvemos lista vacía para no bloquear la aplicación
             return new ArrayList<>(); 
         }
     }
 
     /**
-     * Guarda la lista de artículos en el archivo de persistencia.
-     * @param articulos La lista de ArticuloAnexo a guardar.
+     * Saves the list of articles to the persistence file.
+     * @param articulos The list of ArticuloAnexo to save.
      */
     public void guardarArticulos(List<ArticuloAnexo> articulos) {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
             oos.writeObject(articulos);
-            System.out.println("Lista de artículos guardada en: " + FILE_NAME);
+            System.out.println("List of articles saved in: " + FILE_NAME);
         } catch (IOException e) {
             e.printStackTrace();
         }

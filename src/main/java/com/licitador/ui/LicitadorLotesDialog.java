@@ -10,39 +10,42 @@ import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 
+/**
+ * A dialog for editing the bidder's data and the lots they are participating in.
+ */
 public class LicitadorLotesDialog extends JDialog {
     
-    // El objeto a editar y devolver
     private LicitadorLotesData licitadorLotesData; 
     
     private final Configuracion configuracion;
     private final boolean tieneLotes;
-    private boolean datosGuardados = false; // Indica si se hizo clic en Aceptar
+    private boolean datosGuardados = false;
 
-    // Campos de LicitadorData (para simplificar, usaremos JTextArea como ejemplo, 
-    // pero deben ser JTextFiels, JCheckBox, etc., como tengas en tu LicitadorData Dialog)
     private JTextField razonSocialField;
     private JTextField nifField;
     private JCheckBox esPymeCheck;
     private JCheckBox esExtranjeraCheck;
-    // ... otros campos para domicilio, teléfono, email
 
-    // Componentes para la selección de lotes
     private JPanel lotesPanel;
-    private Set<JCheckBox> loteCheckboxes; // Checkboxes para la selección
+    private Set<JCheckBox> loteCheckboxes;
 
+    /**
+     * Constructs a new LicitadorLotesDialog.
+     *
+     * @param owner The parent frame.
+     * @param configuracion The configuration of the tender.
+     * @param datosIniciales The initial data of the bidder and lots.
+     */
     public LicitadorLotesDialog(Frame owner, Configuracion configuracion, LicitadorLotesData datosIniciales) {
-        super(owner, "Editar Datos del Licitador y Lotes", true);
+        super(owner, "Edit Bidder Data and Lots", true);
         this.configuracion = configuracion;
         this.licitadorLotesData = datosIniciales;
         this.tieneLotes = configuracion.isTieneLotes();
         this.loteCheckboxes = new HashSet<>();
 
-        // Configuración de la ventana
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
 
-        // Inicializar componentes
         initComponents();
         loadData();
 
@@ -181,14 +184,16 @@ public class LicitadorLotesDialog extends JDialog {
     }
     
     /**
-     * Devuelve true si el diálogo se cerró haciendo clic en Aceptar.
+     * Returns true if the dialog was closed by clicking Accept.
+     * @return true if the data was saved.
      */
     public boolean fueGuardado() {
         return datosGuardados;
     }
     
     /**
-     * Devuelve el objeto con los datos actualizados.
+     * Returns the object with the updated data.
+     * @return The updated LicitadorLotesData object.
      */
     public LicitadorLotesData getLicitadorLotesData() {
         return licitadorLotesData;

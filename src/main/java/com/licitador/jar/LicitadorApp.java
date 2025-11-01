@@ -5,6 +5,11 @@ import com.licitador.model.ArticuloAnexo;
 import com.licitador.jar.model.RequerimientoLicitador;
 import java.util.*;
 
+/**
+ * A simulation class for the Licitador application.
+ * This class is used for testing and demonstrating the functionality of the AnexoGenerator.
+ * It simulates the process of loading tender data, collecting bidder responses, and generating the final annex.
+ */
 public class LicitadorApp {
 
     // Simulación de los datos fijos del Licitador (NIF, Razón Social, etc.)

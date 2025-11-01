@@ -4,19 +4,18 @@ import java.io.Serializable;
 import java.util.Arrays;
 
 /**
- * Clase inmutable que almacena los datos de configuración esenciales de una
- * licitación, incluyendo el expediente, el objeto, si tiene lotes y la lista de
- * archivos comunes y documentos de oferta requeridos.
- *
- * Implementa {@link Serializable} para permitir el guardado y la carga de la
- * configuración.
- *
- * NOTA: Esta clase depende de {@link ArchivoRequerido}, la cual se asume
- * definida en algún lugar del proyecto.
+ * An immutable class that stores the essential configuration data of a tender,
+ * including the file number, the object, whether it has lots, and the list of
+ * required common files and offer documents.
+ * <p>
+ * Implements {@link Serializable} to allow saving and loading of the configuration.
+ * <p>
+ * NOTE: This class depends on {@link ArchivoRequerido}, which is assumed to be
+ * defined elsewhere in the project.
  */
 public class LicitacionData implements Serializable {
 
-    private static final long serialVersionUID = 1L; // Recomendado para Serializable
+    private static final long serialVersionUID = 1L;
 
     private final String expediente;
     private final String objeto;
@@ -27,17 +26,18 @@ public class LicitacionData implements Serializable {
     private final ArticuloAnexo[] anexosAdministrativos;
 
     /**
-     * Constructor que inicializa todos los campos de datos de la licitación.
+     * Constructor that initializes all the data fields of the tender.
      *
-     * @param expediente El número o código del expediente de la licitación.
-     * @param objeto La descripción del objeto del contrato.
-     * @param tieneLotes {@code true} si la licitación está dividida en lotes;
-     * {@code false} en caso contrario.
-     * @param numLotes El número total de lotes, o 1 si no tiene lotes.
-     * @param archivosComunes Un array con la configuración de los archivos
-     * comunes requeridos.
-     * @param documentosOferta Un array con la configuración de los documentos
-     * de oferta requeridos (por ejemplo, oferta económica, técnica).
+     * @param expediente The file number or code of the tender.
+     * @param objeto The description of the contract's object.
+     * @param tieneLotes {@code true} if the tender is divided into lots;
+     * {@code false} otherwise.
+     * @param numLotes The total number of lots, or 1 if it has no lots.
+     * @param archivosComunes An array with the configuration of the required
+     * common files.
+     * @param documentosOferta An array with the configuration of the required
+     * offer documents (e.g., economic, technical offer).
+     * @param anexosAdministrativos An array with the administrative annex articles.
      */
     public LicitacionData(String expediente, String objeto, boolean tieneLotes, int numLotes,
             ArchivoRequerido[] archivosComunes, ArchivoRequerido[] documentosOferta,
@@ -48,69 +48,68 @@ public class LicitacionData implements Serializable {
         this.numLotes = numLotes;
         this.archivosComunes = archivosComunes;
         this.documentosOferta = documentosOferta;
-        this.anexosAdministrativos = anexosAdministrativos; // Campo nuevo
+        this.anexosAdministrativos = anexosAdministrativos;
     }
 
-    // Getters
     /**
-     * Obtiene el número o código del expediente de la licitación.
+     * Gets the file number or code of the tender.
      *
-     * @return El expediente.
+     * @return The file number.
      */
     public String getExpediente() {
         return expediente;
     }
 
     /**
-     * Obtiene la descripción del objeto del contrato.
+     * Gets the description of the contract's object.
      *
-     * @return El objeto de la licitación.
+     * @return The object of the tender.
      */
     public String getObjeto() {
         return objeto;
     }
 
     /**
-     * Indica si la licitación está dividida en lotes.
+     * Indicates whether the tender is divided into lots.
      *
-     * @return {@code true} si tiene lotes; {@code false} en caso contrario.
+     * @return {@code true} if it has lots; {@code false} otherwise.
      */
     public boolean tieneLotes() {
         return tieneLotes;
     }
 
     /**
-     * Obtiene el número total de lotes.
+     * Gets the total number of lots.
      *
-     * @return El número de lotes (mayor o igual a 1).
+     * @return The number of lots (greater than or equal to 1).
      */
     public int getNumLotes() {
         return numLotes;
     }
 
     /**
-     * Obtiene el array de archivos comunes requeridos para la licitación.
+     * Gets the array of common files required for the tender.
      *
-     * @return Un array de objetos {@code ArchivoRequerido}.
+     * @return An array of {@code ArchivoRequerido} objects.
      */
     public ArchivoRequerido[] getArchivosComunes() {
         return archivosComunes;
     }
 
     /**
-     * Obtiene el array de documentos de oferta requeridos para la licitación.
+     * Gets the array of offer documents required for the tender.
      *
-     * @return Un array de objetos {@code ArchivoRequerido}.
+     * @return An array of {@code ArchivoRequerido} objects.
      */
     public ArchivoRequerido[] getDocumentosOferta() {
         return documentosOferta;
     }
 
     /**
-     * Devuelve una representación en cadena de texto de esta instancia de
-     * {@code LicitacionData}, mostrando todos sus atributos.
+     * Returns a string representation of this {@code LicitacionData} instance,
+     * showing all its attributes.
      *
-     * @return Una cadena de texto formateada con los datos de la licitación.
+     * @return A formatted string with the tender's data.
      */
     @Override
     public String toString() {
@@ -123,10 +122,10 @@ public class LicitacionData implements Serializable {
     }
 
     /**
-     * Obtiene el array de artículos del anexo administrativo. Es un alias para
-     * getAnexosAdministrativos() usado por el AnexoGenerator.
+     * Gets the array of administrative annex articles. It's an alias for
+     * getAnexosAdministrativos() used by AnexoGenerator.
      *
-     * @return Un array de objetos ArticuloAnexo.
+     * @return An array of ArticuloAnexo objects.
      */
     public ArticuloAnexo[] getArticulosAnexos() {
         return anexosAdministrativos;

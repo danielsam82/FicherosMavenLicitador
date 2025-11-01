@@ -12,78 +12,51 @@ import java.awt.*;
 import java.util.stream.IntStream;
 
 /**
- * Diálogo modal para recoger los datos iniciales del licitador y la
- * participación en lotes al iniciar una Nueva Sesión o al editar la
- * configuración existente.
+ * A modal dialog to collect the bidder's initial data and lot participation
+ * when starting a new session or editing the existing configuration.
  * <p>
- * Permite la entrada de datos personales del licitador (razón social, NIF, etc.)
- * y, si la licitación tiene lotes, la selección de los lotes en los que participará.
- * Almacena los datos introducidos en el {@link FileManager} y notifica a la
- * {@link MainWindow} para actualizar su estado.
+ * It allows the entry of the bidder's personal data (company name, tax ID, etc.)
+ * and, if the tender has lots, the selection of the lots in which they will participate.
+ * It stores the entered data in the {@link FileManager} and notifies the
+ * {@link MainWindow} to update its state.
  * </p>
  */
 public class ConfiguracionInicialDialog extends JDialog {
 
-    /**
-     * Referencia a la ventana principal de la aplicación.
-     */
     private final MainWindow parent;
-    /**
-     * Gestor de archivos para acceder y persistir los datos del licitador y la configuración.
-     */
     private final FileManager fileManager;
-    /**
-     * Objeto de configuración de la licitación actual.
-     */
     private final Configuracion configuracion;
 
-    // Componentes del Licitador
-    /** Campo de texto para la razón social del licitador. */
     private JTextField razonSocialField;
-    /** Campo de texto para el NIF/CIF del licitador. */
     private JTextField nifField;
-    /** Campo de texto para el domicilio del licitador. */
     private JTextField domicilioField;
-    /** Campo de texto para el correo electrónico del licitador. */
     private JTextField emailField;
-    /** Campo de texto para el número de teléfono del licitador. */
     private JTextField telefonoField;
 
-    /** RadioButton para indicar si el licitador es una PYME. */
     private JRadioButton pymeSiRadio;
-    /** RadioButton para indicar si el licitador NO es una PYME. */
     private JRadioButton pymeNoRadio;
-    /** RadioButton para indicar si el licitador es una empresa extranjera. */
     private JRadioButton extranjeraSiRadio;
-    /** RadioButton para indicar si el licitador NO es una empresa extranjera. */
     private JRadioButton extranjeraNoRadio;
 
-    /** Tabla que muestra los lotes disponibles y permite seleccionar la participación. */
     private JTable lotesTable;
 
     /**
-     * Constructor para el diálogo de configuración inicial.
+     * Constructor for the initial configuration dialog.
      *
-     * @param parent La ventana principal de la aplicación, utilizada para la interacción y actualización.
-     * @param fm El {@link FileManager} que gestiona los datos del licitador y de la licitación.
-     * @param config El objeto {@link Configuracion} de la licitación actual.
+     * @param parent The main application window, used for interaction and updates.
+     * @param fm The {@link FileManager} that manages the bidder and tender data.
+     * @param config The current tender's {@link Configuracion} object.
      */
     public ConfiguracionInicialDialog(MainWindow parent, FileManager fm, Configuracion config) {
-        super(parent, "Configuración Inicial del Licitador", true); // Modal
+        super(parent, "Initial Bidder Configuration", true);
         this.parent = parent;
         this.fileManager = fm;
         this.configuracion = config;
 
-        // 1. Inicializar la UI del diálogo
         inicializarComponentesUI();
-
-        // 2. Cargar datos existentes (del FileManager a los campos del diálogo)
         cargarDatosLicitadorAlDialogo();
-
-        // 3. Configurar la tabla de lotes (incluyendo el listener de limpieza)
         configurarTablaLotes();
 
-        // 4. Configurar la disposición de la ventana
         setLayout(new BorderLayout());
         add(crearPanelPrincipal(), BorderLayout.CENTER);
         add(crearPanelBotones(), BorderLayout.SOUTH);

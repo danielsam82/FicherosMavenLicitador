@@ -10,45 +10,26 @@ import java.util.Map;
 import java.util.LinkedHashMap;
 
 /**
- * Diálogo modal que permite al usuario declarar la confidencialidad de un
- * documento seleccionando uno o varios supuestos legales y proporcionando una
- * motivación textual obligatoria para cada supuesto elegido.
+ * A modal dialog that allows the user to declare the confidentiality of a document
+ * by selecting one or more legal assumptions and providing a mandatory textual
+ * motivation for each chosen assumption.
  */
 public class ConfidencialidadDialog extends JDialog {
 
-    /**
-     * Array de {@code JCheckBox} correspondientes a los supuestos de
-     * confidencialidad disponibles.
-     */
     private final JCheckBox[] checkBoxes;
-    /**
-     * Array de {@code JTextArea} para introducir la motivación de
-     * confidencialidad para cada supuesto (asociados uno a uno con
-     * {@code checkBoxes}).
-     */
     private final JTextArea[] textAreas;
-    /**
-     * Indicador de estado que es {@code true} si el usuario pulsó 'OK' y pasó
-     * las validaciones, y {@code false} si pulsó 'Cancelar' o cerró el diálogo.
-     */
     private boolean confirmado = false;
-    /**
-     * Array inmutable de los nombres de los supuestos legales de
-     * confidencialidad.
-     */
     private final String[] supuestos;
 
     /**
-     * Constructor para inicializar el diálogo de declaración de
-     * confidencialidad.
+     * Constructs and initializes the confidentiality declaration dialog.
      *
-     * @param owner El diálogo padre, que lo mantiene modal.
-     * @param supuestos Array de cadenas con los nombres de los supuestos
-     * legales disponibles.
+     * @param owner The parent dialog, which keeps it modal.
+     * @param supuestos An array of strings with the names of the available legal assumptions.
      */
     public ConfidencialidadDialog(JDialog owner, String[] supuestos) {
-        super(owner, "Declarar confidencialidad", true);
-        this.supuestos = supuestos; // Guardamos los supuestos para poder usarlos
+        super(owner, "Declare Confidentiality", true);
+        this.supuestos = supuestos;
 
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -70,14 +51,13 @@ public class ConfidencialidadDialog extends JDialog {
             gbc.weightx = 1.0;
             textAreas[i] = new JTextArea(3, 30);
             textAreas[i].setEnabled(false);
-            textAreas[i].setBorder(BorderFactory.createTitledBorder("Motivación"));
+            textAreas[i].setBorder(BorderFactory.createTitledBorder("Motivation"));
             JScrollPane scrollPane = new JScrollPane(textAreas[i]);
             add(scrollPane, gbc);
 
             final int index = i;
             checkBoxes[i].addActionListener(e -> {
                 textAreas[index].setEnabled(checkBoxes[index].isSelected());
-                // Borramos el texto si se deselecciona el checkbox
                 if (!checkBoxes[index].isSelected()) {
                     textAreas[index].setText("");
                 }
@@ -90,7 +70,7 @@ public class ConfidencialidadDialog extends JDialog {
             for (int i = 0; i < checkBoxes.length; i++) {
                 if (checkBoxes[i].isSelected()) {
                     if (textAreas[i].getText().trim().isEmpty()) {
-                        JOptionPane.showMessageDialog(this, "Debe proporcionar una motivación para el supuesto seleccionado: '" + checkBoxes[i].getText() + "'", "Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this, "You must provide a motivation for the selected assumption: '" + checkBoxes[i].getText() + "'", "Error", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
                 }
@@ -99,7 +79,7 @@ public class ConfidencialidadDialog extends JDialog {
             dispose();
         });
 
-        JButton cancelButton = new JButton("Cancelar");
+        JButton cancelButton = new JButton("Cancel");
         cancelButton.addActionListener(e -> {
             confirmado = false;
             dispose();
@@ -119,22 +99,21 @@ public class ConfidencialidadDialog extends JDialog {
     }
 
     /**
-     * Devuelve el estado de confirmación del diálogo.
+     * Returns the confirmation status of the dialog.
      *
-     * @return {@code true} si el usuario pulsó 'OK' y las validaciones pasaron;
-     * {@code false} en caso contrario.
+     * @return {@code true} if the user clicked 'OK' and the validations passed;
+     * {@code false} otherwise.
      */
     public boolean isConfirmado() {
         return confirmado;
     }
 
     /**
-     * Obtiene los supuestos de confidencialidad seleccionados junto con sus
-     * motivaciones asociadas.
+     * Gets the selected confidentiality assumptions along with their associated motivations.
      *
-     * @return Un {@code Map<String, String>} donde la clave es el supuesto (el
-     * texto del checkbox) y el valor es la motivación textual introducida por
-     * el usuario. Solo incluye las opciones que fueron seleccionadas.
+     * @return A {@code Map<String, String>} where the key is the assumption (the
+     * checkbox text) and the value is the textual motivation entered by the user.
+     * It only includes the options that were selected.
      */
     public Map<String, String> getConfidencialidadSeleccionada() {
         Map<String, String> seleccion = new LinkedHashMap<>();
@@ -147,24 +126,22 @@ public class ConfidencialidadDialog extends JDialog {
     }
 
     /**
-     * Obtiene un array con los supuestos legales de confidencialidad
-     * seleccionados. Es un método de conveniencia que extrae las claves del
-     * mapa devuelto por {@link #getConfidencialidadSeleccionada()}.
+     * Gets an array with the selected legal confidentiality assumptions. This is a
+     * convenience method that extracts the keys from the map returned by
+     * {@link #getConfidencialidadSeleccionada()}.
      *
-     * @return Array de {@code String} con los supuestos seleccionados.
+     * @return An array of {@code String} with the selected assumptions.
      */
     public String[] getSupuestosSeleccionados() {
         return getConfidencialidadSeleccionada().keySet().toArray(new String[0]);
     }
 
     /**
-     * Obtiene un array con las motivaciones textuales introducidas por el
-     * usuario, en el mismo orden que los supuestos seleccionados. Es un método
-     * de conveniencia que extrae los valores del mapa devuelto por
-     * {@link #getConfidencialidadSeleccionada()}.
+     * Gets an array with the textual motivations entered by the user, in the same
+     * order as the selected assumptions. This is a convenience method that extracts
+     * the values from the map returned by {@link #getConfidencialidadSeleccionada()}.
      *
-     * @return Array de {@code String} con las motivaciones de los supuestos
-     * seleccionados.
+     * @return An array of {@code String} with the motivations for the selected assumptions.
      */
     public String[] getMotivosSupuestos() {
         return getConfidencialidadSeleccionada().values().toArray(new String[0]);

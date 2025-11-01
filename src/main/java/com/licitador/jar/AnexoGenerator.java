@@ -9,10 +9,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Clase responsable de dos fases en el JAR del Licitador: 1. Obtener los
- * requisitos de datos del Licitador (para la GUI). 2. Ensamblar el Anexo final,
- * sustituyendo tags y adaptando el contenido en base a las respuestas recogidas
- * en los RequerimientoLicitador.
+ * This class is responsible for two phases in the Licitador's JAR:
+ * 1. Obtaining the bidder's data requirements for the GUI.
+ * 2. Assembling the final annex by substituting tags and adapting the content based on the responses
+ *    collected in the RequerimientoLicitador.
  */
 public class AnexoGenerator {
 
@@ -22,6 +22,12 @@ public class AnexoGenerator {
     // Para la sustitución: Mapeamos el ID del Artículo a su Requerimiento Final
     private final Map<String, RequerimientoLicitador> respuestasMap;
 
+    /**
+     * Constructs a new AnexoGenerator.
+     *
+     * @param licitacionData The tender data.
+     * @param datosFijosLicitador A map of the bidder's fixed data (e.g., NIF, company name).
+     */
     public AnexoGenerator(LicitacionData licitacionData, Map<String, String> datosFijosLicitador) {
         this.licitacionData = licitacionData;
         this.datosFijosLicitador = datosFijosLicitador;
@@ -32,10 +38,9 @@ public class AnexoGenerator {
     // FASE 1: OBTENER REQUERIMIENTOS (Para mostrar preguntas en la GUI)
     // ----------------------------------------------------------------------
     /**
-     * Examina los artículos y extrae todos los artículos interactivos que la
-     * GUI del licitador debe gestionar.
+     * Examines the articles and extracts all interactive articles that the bidder's GUI must manage.
      *
-     * @return Lista de objetos RequerimientoLicitador.
+     * @return A list of RequerimientoLicitador objects.
      */
     public List<RequerimientoLicitador> obtenerRequerimientosInteractivos() {
         List<RequerimientoLicitador> requerimientos = new ArrayList<>();
@@ -67,20 +72,19 @@ public class AnexoGenerator {
     // FASE 2: GENERAR CONTENIDO FINAL (Usando las respuestas recogidas)
     // ----------------------------------------------------------------------
     /**
-     * Almacena las respuestas recogidas por la GUI para la fase de generación.
+     * Stores the responses collected by the GUI for the generation phase.
      *
-     * @param requerimientosFinales La lista de Requerimientos COMPLETADA por el
-     * Licitador.
+     * @param requerimientosFinales The list of requirements completed by the bidder.
      */
     public void setRespuestasFinales(List<RequerimientoLicitador> requerimientosFinales) {
         requerimientosFinales.forEach(req -> respuestasMap.put(req.getIdArticulo(), req));
     }
 
     /**
-     * Ensambla todos los artículos, adaptando el texto según las respuestas
-     * interactivas, y sustituyendo todos los tags por los datos reales.
+     * Assembles all articles, adapting the text according to the interactive responses,
+     * and substituting all tags with the actual data.
      *
-     * @return El contenido final del Anexo Global (String pre-PDF, ej: HTML).
+     * @return The final content of the Global Annex (e.g., a pre-PDF HTML string).
      */
     public String generarContenidoFinal() {
         ArticuloAnexo[] articulos = licitacionData.getArticulosAnexos();

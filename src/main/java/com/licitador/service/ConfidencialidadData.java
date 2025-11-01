@@ -3,53 +3,49 @@ package com.licitador.service;
 import java.io.Serializable;
 
 /**
- * Clase de modelo que encapsula los datos relacionados con la declaración de
- * confidencialidad de un archivo.
+ * A model class that encapsulates data related to the confidentiality declaration of a file.
  * <p>
- * Almacena los supuestos legales seleccionados y las motivaciones introducidas
- * por el usuario para justificar el carácter confidencial de un documento.
- * Implementa {@code Serializable} para permitir su almacenamiento o transmisión.
+ * It stores the selected legal assumptions and the motivations entered by the user to justify
+ * the confidential nature of a document.
+ * Implements {@code Serializable} to allow for its storage or transmission.
  * </p>
  */
 public class ConfidencialidadData implements Serializable {
     
     /**
-     * Array de nombres o códigos de los supuestos legales de confidencialidad seleccionados.
+     * An array of names or codes of the selected legal confidentiality assumptions.
      */
     private String[] supuestosSeleccionados;
     
     /**
-     * Array de las motivaciones o justificaciones introducidas por el usuario
-     * para cada uno de los supuestos seleccionados.
+     * An array of the motivations or justifications entered by the user for each of the selected assumptions.
      */
     private String[] motivosSupuestos;
 
     /**
-     * Constructor para crear una instancia de {@code ConfidencialidadData}.
+     * Constructs an instance of {@code ConfidencialidadData}.
      *
-     * @param supuestosSeleccionados Array con los identificadores de los supuestos legales seleccionados.
-     * @param motivosSupuestos Array con las motivaciones textuales que justifican la confidencialidad.
+     * @param supuestosSeleccionados An array with the identifiers of the selected legal assumptions.
+     * @param motivosSupuestos An array with the textual motivations justifying confidentiality.
      */
     public ConfidencialidadData(String[] supuestosSeleccionados, String[] motivosSupuestos) {
         this.supuestosSeleccionados = supuestosSeleccionados;
         this.motivosSupuestos = motivosSupuestos;
     }
-
-    // Getters
     
     /**
-     * Obtiene el array de identificadores de los supuestos legales de confidencialidad seleccionados.
+     * Gets the array of identifiers of the selected legal confidentiality assumptions.
      *
-     * @return Array de {@code String} con los supuestos seleccionados.
+     * @return An array of {@code String} with the selected assumptions.
      */
     public String[] getSupuestosSeleccionados() {
         return supuestosSeleccionados;
     }
 
     /**
-     * Obtiene el array de motivaciones o justificaciones introducidas por el usuario.
+     * Gets the array of motivations or justifications entered by the user.
      *
-     * @return Array de {@code String} con las motivaciones.
+     * @return An array of {@code String} with the motivations.
      */
     public String[] getMotivosSupuestos() {
         return motivosSupuestos;
